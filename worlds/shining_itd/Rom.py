@@ -12,6 +12,13 @@ if TYPE_CHECKING:
 
 SITD_UE_HASH = '522b689a1b2f0ea8578fa9d888554b82'
 
+AP_ITEM_CODE = 0xe0
+
+DO_OPEN_CHEST = 0x0826e
+DO_OPEN_CHEST_JSR_DO_CHESTBEAK_ANIM = DO_OPEN_CHEST + 0x15a
+MSG_B0A = 0x57356
+CHECK_AP_ITEM = 0x5a0b8
+
 
 class SITDProcedurePatch(APProcedurePatch, APTokenMixin):
     game = 'Shining in the Darkness'
@@ -54,11 +61,24 @@ def write_tokens(world: 'SITDWorld', patch: SITDProcedurePatch, chest_locations:
         raise Exception("Name too long!")
     patch.write_token(APTokenTypes.WRITE, NAME_SPACE, raw_name)
 
-    # TODO this will replace any non-SITD item with 50g instead of 'nothing'
-    #      need to patch ROM to show 'found APItem' or whatever?
+    # patch DoOpenChest
+    patch.write_token(APTokenTypes.WRITE, DO_OPEN_CHEST_JSR_DO_CHESTBEAK_ANIM, bytes([
+        0x4e, 0xf9, 0x00, 0x05, 0xa0, 0xb8,     # jmp CheckAPItem
+    ]))
+
+    # write CheckAPItem
+    patch.write_token(APTokenTypes.WRITE, CHECK_AP_ITEM, bytes([
+        0x0c, 0x01, 0x00, 0xe0,                 # cmpi.b #e0,D1b
+        0x67, 0x08,                             # beq.b +8
+        0x4e, 0xb9, 0x00, 0x01, 0x00, 0x6c,     # jsr DoChestbeakAnim
+        0x4e, 0x75,                             # rts
+        0x30, 0x3c, 0x0b, 0x0a,                 # move.w #b0a,D0w
+        0x4e, 0xf9, 0x00, 0x00, 0x83, 0x54,     # jmp 0x8354
+    ]))
+
     for location_data in chest_locations:
         item = world.get_location(location_data.name).item
-        item_hex = 0x80  # default to 50g chest - least impactful
+        item_hex = AP_ITEM_CODE
         if not item is None:
             if not item.code is None:
                 if item.code in items_by_id:
@@ -67,5 +87,9 @@ def write_tokens(world: 'SITDWorld', patch: SITDProcedurePatch, chest_locations:
                         item_hex = item_data.code
         patch.write_token(APTokenTypes.WRITE,
                           location_data.rom_location, bytes([item_hex]))
+
+    # write "Found AP Item!" to message b0a address
+    patch.write_token(APTokenTypes.WRITE, MSG_B0A, bytes(
+        [0x09, 0x13, 0xd6, 0xdb, 0x7f, 0x59, 0x0d, 0x3b, 0x9f]))
 
     patch.write_file('token_data.bin', patch.get_token_binary())

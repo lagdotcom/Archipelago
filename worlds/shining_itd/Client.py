@@ -95,20 +95,20 @@ class SITDClient(BizHawkClient):
         for loc_id in found_locations:
             ctx.locations_checked.add(loc_id)
             name = ctx.location_names.lookup_in_game(loc_id)
-            logger.info(
+            logger.debug(
                 f'New Check: {name} ({len(ctx.locations_checked)})/{len(ctx.missing_locations) + len(ctx.checked_locations)}')
 
     async def received_items_check(self, ctx: 'BizHawkClientContext'):
         new_count = len(ctx.items_received) - self.items_received
         if new_count > 0:
-            logger.info(f'Received {new_count} new items')
+            logger.debug(f'Received {new_count} new items')
             for nwi in ctx.items_received[-new_count:]:
                 item = items_by_id[nwi.item]
                 if item.gold_pieces > 0:
                     self.gold_pending += item.gold_pieces
                 else:
                     self.items_queue.append(nwi.item)
-                logger.info(f'... got {item.name}')
+                logger.debug(f'... got {item.name}')
             self.items_received = len(ctx.items_received)
 
     async def get_empty_inventory_slot(self, ctx: 'BizHawkClientContext'):
@@ -148,7 +148,7 @@ class SITDClient(BizHawkClient):
                 raise Exception(
                     f"Don't know how to reward non-code item: {item.name}")
             await bizhawk.guarded_write(ctx.bizhawk_ctx, [(address, bytes([item.code]), self.ram)], [(address, expected, self.ram)])
-            logger.info(f'Sent item {item.name}')
+            logger.debug(f'Sent item {item.name}')
 
     async def process_pending_gold(self, ctx: 'BizHawkClientContext'):
         amount = self.gold_pending
@@ -163,7 +163,8 @@ class SITDClient(BizHawkClient):
         new_gold = old_gold + amount
         new_bytes = new_gold.to_bytes(4, 'big')
 
-        logger.info(f'Trying to send {amount} gold ({old_gold} -> {new_gold})')
+        logger.debug(
+            f'Trying to send {amount} gold ({old_gold} -> {new_gold})')
         await bizhawk.guarded_write(ctx.bizhawk_ctx, [(address, new_bytes, self.ram)], [(address, old_bytes, self.ram)])
         self.gold_pending = 0
         await bizhawk.display_message(ctx.bizhawk_ctx, f'Received {amount} gold')
@@ -180,6 +181,6 @@ class SITDClient(BizHawkClient):
                 ol = self.prev_flags[i]
                 nu = flags_data[i]
                 if ol != nu:
-                    logger.info('Flag %04x: %02x -> %02x (%02x flipped)' %
-                                (ALL_FLAG_START+i, ol, nu, ol ^ nu))
+                    logger.debug('Flag %04x: %02x -> %02x (%02x flipped)' %
+                                 (ALL_FLAG_START+i, ol, nu, ol ^ nu))
         self.prev_flags = flags_data

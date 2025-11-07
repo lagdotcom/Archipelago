@@ -124,6 +124,7 @@ class SITDWorld(World):
         return False
 
     def set_rules(self):
+        # TODO make goal an option
         self.multiworld.completion_condition[self.player] = lambda state: state.has(
             ItemName.DarkSol, self.player)
 

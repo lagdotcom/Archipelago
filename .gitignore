@@ -20,6 +20,7 @@
 *.nes
 *.smc
 *.sms
+*.gen
 *.gb
 *.gbc
 *.gba
