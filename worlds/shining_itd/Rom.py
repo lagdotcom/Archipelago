@@ -3,7 +3,7 @@ from typing import Iterable, TYPE_CHECKING
 
 from worlds.Files import APProcedurePatch, APTokenMixin, APTokenTypes
 
-from .Constants import NAME_SPACE, NAME_SPACE_LEN
+from .Constants import NAME_SPACE, NAME_SPACE_LEN, GOAL_SPACE
 from .Items import items_by_id
 
 if TYPE_CHECKING:
@@ -64,10 +64,15 @@ def get_base_rom_path():
 
 
 def write_tokens(world: 'SITDWorld', patch: SITDProcedurePatch, chest_locations: Iterable['LD']):
+    # write player name
     raw_name = patch.player_name.encode('utf-8') + b'\0'
     if len(raw_name) > NAME_SPACE_LEN:
         raise Exception("Name too long!")
     patch.write_token(APTokenTypes.WRITE, NAME_SPACE, raw_name)
+
+    # write goal number
+    patch.write_token(APTokenTypes.WRITE, GOAL_SPACE,
+                      bytes([world.options.goal]))
 
     # patch DoOpenChest
     patch.write_token(APTokenTypes.WRITE, DO_OPEN_CHEST_JSR_DO_CHESTBEAK_ANIM, bytes([
