@@ -34,7 +34,7 @@ class XPMultiplier(Range):
     display_name = "XP Multiplier"
     range_start = 1
     range_end = 100
-    default = 5
+    default = 2
 
 
 class UsefulItems(Range):
