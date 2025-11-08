@@ -60,3 +60,5 @@ all_regions = [
     RegionData(RegionName.Lab4Cell, {}),
     RegionData(RegionName.Lab5, {}),
 ]
+
+regions_by_name = {region.name: region for region in all_regions}

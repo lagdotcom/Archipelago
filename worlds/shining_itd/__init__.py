@@ -4,11 +4,12 @@ import settings
 
 from typing import Callable, ClassVar, Optional
 from BaseClasses import CollectionState, Item, Location, MultiWorld, Region, Tutorial
-from .Items import all_items, items_by_name, item_name_groups, required_items, useful_item_names, filler_item_names, reward_item_names
+from .Goals import get_goal_data
+from .Items import all_items, items_by_name, item_name_groups, useful_item_names, filler_item_names
 from .Locations import all_locations, chest_locations, location_name_groups
-from .Names import ItemName, RegionName
+from .Names import RegionName
 from .Options import SITDOptions
-from .Regions import all_regions
+from .Regions import all_regions, regions_by_name
 from .Rom import SITD_UE_HASH, SITDProcedurePatch, get_base_rom_path, write_tokens
 from ..AutoWorld import WebWorld, World
 from .Client import SITDClient  # type: ignore
@@ -85,18 +86,22 @@ class SITDWorld(World):
     def create_regions(self):
         multiworld = self.multiworld
         player = self.player
-        # options = self.options
+        options = self.options
+        goal = get_goal_data(options.goal.value)
 
         menu = Region(RegionName.Menu, player, multiworld)
         multiworld.regions.append(menu)
 
         # make regions
-        for info in all_regions:
+        for region_name in goal.region_names:
+            info = regions_by_name[region_name]
             region = Region(info.name, player, multiworld)
             multiworld.regions.append(region)
 
         # make locations
         for info in all_locations:
+            if not goal.has_region(info.region_name):
+                continue
             region = multiworld.get_region(info.region_name, player)
             loc = SITDLocation(player, info.name, info.id, region)
             region.locations.append(loc)
@@ -105,9 +110,13 @@ class SITDWorld(World):
         menu.connect(multiworld.get_region(RegionName.Lab1, player))
 
         for info in all_regions:
+            if not goal.has_region(info.name):
+                continue
             if len(info.exits):
                 region = multiworld.get_region(info.name, player)
                 for (exit_name, item_lists) in info.exits.items():
+                    if not goal.has_region(exit_name):
+                        continue
                     destination = multiworld.get_region(exit_name, player)
                     region.connect(destination, None,
                                    self.make_exit_rule(item_lists))
@@ -124,9 +133,9 @@ class SITDWorld(World):
         return False
 
     def set_rules(self):
-        # TODO make goal an option
-        self.multiworld.completion_condition[self.player] = lambda state: state.has(
-            ItemName.DarkSol, self.player)
+        goal = get_goal_data(self.options.goal.value)
+        self.multiworld.completion_condition[self.player] = goal.get_completion_function(
+            self.player)
 
     def create_item(self, name: str):
         item = items_by_name[name]
@@ -138,27 +147,30 @@ class SITDWorld(World):
                 return location_data
 
     def create_items(self):
+        options = self.options
+        goal = get_goal_data(options.goal.value)
         added_items: list[str] = []
 
-        required_item_names = [item.name for item in required_items]
-        place_early_names = set(required_item_names + reward_item_names)
+        # required_item_names = [item.name for item in required_items]
+        # place_early_names = set(required_item_names + reward_item_names)
 
-        for name in place_early_names:
+        for name in goal.required_item_names:
             item = self.create_item(name)
             fixed_location = self.get_fixed_location_for_item(name)
             if fixed_location:
-                # print(f'forcing {name} at {fixed_location.name}')
+                # print(f'forcing [{name}] at [{fixed_location.name}]')
                 self.multiworld.get_location(
                     fixed_location.name, self.player).place_locked_item(item)
             else:
                 self.multiworld.itempool.append(item)
             added_items.append(item.name)
 
-        remaining = len(all_locations) - len(added_items)
+        remaining = len(list(self.get_locations())) - len(added_items)
+        # print(f'remaining location count: {remaining}')
 
         useful = useful_item_names[:]
-        # TODO make this an option
-        useful_count = min(int(remaining // 0.75), len(useful))
+        useful_count = min(
+            int(remaining * 100 // options.useful_items.value), len(useful))
         self.random.shuffle(useful)
         for name in useful[:useful_count]:
             self.multiworld.itempool.append(self.create_item(name))

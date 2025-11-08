@@ -16,8 +16,16 @@ AP_ITEM_CODE = 0xe0
 
 DO_OPEN_CHEST = 0x0826e
 DO_OPEN_CHEST_JSR_DO_CHESTBEAK_ANIM = DO_OPEN_CHEST + 0x15a
+
+BATTLE_REWARDS = 0x24abe
+BATTLE_REWARDS_MOVE_XP_ARG = BATTLE_REWARDS + 0x342
+
 MSG_B0A = 0x57356
+
 CHECK_AP_ITEM = 0x5a0b8
+APPLY_REWARD_MULTIPLIERS = 0x5a0e0
+APPLY_REWARD_MULTIPLIERS_GOLD = 0x5a0e0 + 0xc
+APPLY_REWARD_MULTIPLIERS_XP = 0x5a0e0 + 0x24
 
 
 class SITDProcedurePatch(APProcedurePatch, APTokenMixin):
@@ -56,7 +64,7 @@ def get_base_rom_path():
 
 
 def write_tokens(world: 'SITDWorld', patch: SITDProcedurePatch, chest_locations: Iterable['LD']):
-    raw_name = world.player_name.encode('utf-8') + b'\0'
+    raw_name = patch.player_name.encode('utf-8') + b'\0'
     if len(raw_name) > NAME_SPACE_LEN:
         raise Exception("Name too long!")
     patch.write_token(APTokenTypes.WRITE, NAME_SPACE, raw_name)
@@ -76,7 +84,52 @@ def write_tokens(world: 'SITDWorld', patch: SITDProcedurePatch, chest_locations:
         0x4e, 0xf9, 0x00, 0x00, 0x83, 0x54,     # jmp 0x8354
     ]))
 
+    # patch BattleRewards
+    patch.write_token(APTokenTypes.WRITE, BATTLE_REWARDS_MOVE_XP_ARG, bytes([
+        0x4e, 0xf9, 0x00, 0x05, 0xa0, 0xe0,     # jmp ApplyRewardMultipliers
+        0x4e, 0x71,                             # nop
+        0x4e, 0x71,                             # nop
+    ]))
+
+    # write ApplyRewardMultipliers
+    patch.write_token(APTokenTypes.WRITE, APPLY_REWARD_MULTIPLIERS, bytes([
+        # movem.l {D3 D2},-(SP)
+        0x48, 0xe7, 0x30, 0x00,
+        # move.l (BattleGold).l,D3
+        0x26, 0x39, 0x00, 0xff, 0x3e, 0x00,
+        # move.l #1,D2
+        0x24, 0x3c, 0x00, 0x00, 0x00, 0x01,
+        # jsr Mul64
+        0x4e, 0xb9, 0x00, 0x00, 0x2a, 0xc6,
+        # move.l D3,(BattleGold).l
+        0x23, 0xc3, 0x00, 0xff, 0x3e, 0x00,
+        # move.l (BattleXP).l,D3
+        0x26, 0x39, 0x00, 0xff, 0x3e, 0x04,
+        # move.l #1,D2
+        0x24, 0x3c, 0x00, 0x00, 0x00, 0x01,
+        # jsr Mul64
+        0x4e, 0xb9, 0x00, 0x00, 0x2a, 0xc6,
+        # move.l D3,(BattleXP).l
+        0x23, 0xc3, 0x00, 0xff, 0x3e, 0x04,
+        # movem.l (SP)+,{D2 D3}
+        0x4c, 0xdf, 0x00, 0x0c,
+        # move.l (BattleXP).l,(MESSAGE_ARG_NUMBER).l
+        0x23, 0xf9, 0x00, 0xff, 0x3e, 0x04, 0x00, 0xff, 0x3a, 0x54,
+        # jmp 0x24e0a
+        0x4e, 0xf9, 0x00, 0x02, 0x4e, 0x0a,
+    ]))
+
+    # apply specific multipliers
+    patch.write_token(
+        APTokenTypes.WRITE, APPLY_REWARD_MULTIPLIERS_GOLD, world.options.gold_multi.value.to_bytes(4, 'big'))
+    patch.write_token(APTokenTypes.WRITE,
+                      APPLY_REWARD_MULTIPLIERS_XP, world.options.xp_multi.value.to_bytes(4, 'big'))
+
+    valid_locations = set(
+        [location.name for location in world.get_locations()])
     for location_data in chest_locations:
+        if not location_data.name in valid_locations:
+            continue
         item = world.get_location(location_data.name).item
         item_hex = AP_ITEM_CODE
         if not item is None:

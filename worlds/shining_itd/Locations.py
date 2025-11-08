@@ -216,6 +216,7 @@ all_locations = lab1_locations + str_locations + cou_locations + tru_locations +
 chest_locations = [location for location in all_locations if location.is_chest]
 
 locations_by_id = {location.id: location for location in all_locations}
+locations_by_name = {location.name: location for location in all_locations}
 
 location_name_groups = {
     'Labyrinth L1': {loc.name for loc in lab1_locations},

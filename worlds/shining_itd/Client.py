@@ -112,6 +112,7 @@ class SITDClient(BizHawkClient):
             self.items_received = len(ctx.items_received)
 
     async def get_empty_inventory_slot(self, ctx: 'BizHawkClientContext'):
+        # TODO don't try to give items to party members we don't have yet
         inventory = await self.read_ram(ctx, INVENTORY_START, INVENTORY_LENGTH)
         for i in range(1, 48, 2):
             existing = inventory[i]
@@ -135,6 +136,7 @@ class SITDClient(BizHawkClient):
         if await self.not_in_game(ctx):
             return
 
+        # TODO figure out how to not award items twice!
         while len(self.items_queue):
             address, expected = await self.get_empty_inventory_slot(ctx)
             if address is None or expected is None:
@@ -145,10 +147,11 @@ class SITDClient(BizHawkClient):
             item_id = self.items_queue.pop()
             item = items_by_id[item_id]
             if item.code is None:
-                raise Exception(
+                logger.warning(
                     f"Don't know how to reward non-code item: {item.name}")
-            await bizhawk.guarded_write(ctx.bizhawk_ctx, [(address, bytes([item.code]), self.ram)], [(address, expected, self.ram)])
-            logger.debug(f'Sent item {item.name}')
+            else:
+                await bizhawk.guarded_write(ctx.bizhawk_ctx, [(address, bytes([item.code]), self.ram)], [(address, expected, self.ram)])
+            logger.debug(f'Received item {item.name}')
 
     async def process_pending_gold(self, ctx: 'BizHawkClientContext'):
         amount = self.gold_pending
