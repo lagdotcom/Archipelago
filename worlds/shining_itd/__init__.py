@@ -2,7 +2,7 @@ import logging
 import os
 import settings
 
-from typing import Callable, ClassVar, Optional
+from typing import Any, Callable, ClassVar, Optional, Sequence, Tuple
 from BaseClasses import CollectionState, Item, Location, MultiWorld, Region, Tutorial
 from .Goals import get_goal_data
 from .Items import all_items, items_by_name, item_name_groups, useful_item_names, filler_item_names
@@ -31,6 +31,17 @@ class SITDSettings(settings.Group):
         copy_to = "Shining in the Darkness (UE) [!].gen"
         description = "Shining in the Darkness ROM File"
         md5s = [SITD_UE_HASH]
+
+        def browse(self: settings.T,
+                   filetypes: Optional[Sequence[Tuple[str,
+                                                      Sequence[str]]]] = None,
+                   **kwargs: Any) -> Optional[settings.T]:
+            if not filetypes:
+                file_types = [("GEN", [".gen"]), ("BIN", [".bin"]),
+                              ("SMD", [".smd"]), ("68K", [".68k"]),]
+                return super().browse(file_types, **kwargs)
+            else:
+                return super().browse(filetypes, **kwargs)
 
     class RomStart(str):
         """
@@ -172,15 +183,17 @@ class SITDWorld(World):
         remaining = len(list(self.get_locations())) - len(added_items)
         # print(f'remaining location count: {remaining}')
 
-        useful = useful_item_names[:]
-        useful_count = min(
-            int(remaining * 100 // options.useful_items.value), len(useful))
-        self.random.shuffle(useful)
-        for name in useful[:useful_count]:
-            # logger.debug('useful: add [%s] to item pool', name)
-            self.multiworld.itempool.append(self.create_item(name))
+        if options.useful_items.value > 0:
+            useful = useful_item_names[:]
+            useful_count = min(
+                int(remaining * 100 // options.useful_items.value), len(useful))
+            self.random.shuffle(useful)
+            for name in useful[:useful_count]:
+                # logger.debug('useful: add [%s] to item pool', name)
+                self.multiworld.itempool.append(self.create_item(name))
+                remaining -= 1
 
-        for _ in range(remaining - useful_count):
+        for _ in range(remaining):
             name = self.get_filler_item_name()
             # logger.debug('filler: add [%s] to item pool', name)
             self.multiworld.itempool.append(self.create_item(name))

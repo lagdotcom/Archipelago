@@ -154,7 +154,7 @@ equipment_items = [
     ItemData(517_9_122, 'Ogre Flute', 0x7a, ItemClassification.useful),
     ItemData(517_9_123, 'Black Box', 0x7b, ItemClassification.useful),
     ItemData(517_9_124, 'Gauntlet', 0x7c, ItemClassification.useful),
-    ItemData(517_9_125, 'Demon Staff', 0x7e, ItemClassification.useful),
+    ItemData(517_9_126, 'Demon Staff', 0x7e, ItemClassification.useful),
 ]
 
 crafting_items = [
@@ -172,13 +172,13 @@ consumable_items = [
     ItemData(517_9_094, 'Wisdom Seed', 0x5e, ItemClassification.filler),
     ItemData(517_9_100, 'Tamayoshi', 0x64, ItemClassification.filler),
     ItemData(517_9_102, 'Heal Ring', 0x66, ItemClassification.filler),
-    ItemData(517_9_104, 'Barrier Ring', 0x67, ItemClassification.filler),
-    ItemData(517_9_105, I.MagicRing, 0x68, ItemClassification.filler),
-    ItemData(517_9_107, 'Magic Mirror', 0x6a, ItemClassification.filler),
-    ItemData(517_9_108, 'Herb Water', 0x6b, ItemClassification.filler),
-    ItemData(517_9_110, 'Holy Water', 0x6d, ItemClassification.filler),
-    ItemData(517_9_111, 'Healer Fruit', 0x6e, ItemClassification.filler),
-    ItemData(517_9_112, 'Smelling Salts', 0x6f, ItemClassification.filler),
+    ItemData(517_9_103, 'Barrier Ring', 0x67, ItemClassification.filler),
+    ItemData(517_9_104, I.MagicRing, 0x68, ItemClassification.filler),
+    ItemData(517_9_106, 'Magic Mirror', 0x6a, ItemClassification.filler),
+    ItemData(517_9_107, 'Herb Water', 0x6b, ItemClassification.filler),
+    ItemData(517_9_109, 'Holy Water', 0x6d, ItemClassification.filler),
+    ItemData(517_9_110, 'Healer Fruit', 0x6e, ItemClassification.filler),
+    ItemData(517_9_111, 'Smelling Salts', 0x6f, ItemClassification.filler),
     ItemData(517_9_117, 'Miracle Herb', 0x75, ItemClassification.filler),
 ]
 
