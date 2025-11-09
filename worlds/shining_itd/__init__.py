@@ -95,6 +95,7 @@ class SITDWorld(World):
         # make regions
         for region_name in goal.region_names:
             info = regions_by_name[region_name]
+            # logger.debug('add region: [%s]', info.name)
             region = Region(info.name, player, multiworld)
             multiworld.regions.append(region)
 
@@ -103,6 +104,7 @@ class SITDWorld(World):
             if not goal.has_region(info.region_name):
                 continue
             region = multiworld.get_region(info.region_name, player)
+            # logger.debug('add location [%s] to region [%s]', info.name, region.name)
             loc = SITDLocation(player, info.name, info.id, region)
             region.locations.append(loc)
 
@@ -117,6 +119,7 @@ class SITDWorld(World):
                 for (exit_name, item_lists) in info.exits.items():
                     if not goal.has_region(exit_name):
                         continue
+                    # logger.debug('connect [%s] to [%s]', info.name, exit_name)
                     destination = multiworld.get_region(exit_name, player)
                     region.connect(destination, None,
                                    self.make_exit_rule(item_lists))
@@ -158,10 +161,11 @@ class SITDWorld(World):
             item = self.create_item(name)
             fixed_location = self.get_fixed_location_for_item(name)
             if fixed_location:
-                # print(f'forcing [{name}] at [{fixed_location.name}]')
+                # logger.debug('force [%s] at [%s]', name, fixed_location.name)
                 self.multiworld.get_location(
                     fixed_location.name, self.player).place_locked_item(item)
             else:
+                # logger.debug('required: add [%s] to item pool', item.name)
                 self.multiworld.itempool.append(item)
             added_items.append(item.name)
 
@@ -173,11 +177,13 @@ class SITDWorld(World):
             int(remaining * 100 // options.useful_items.value), len(useful))
         self.random.shuffle(useful)
         for name in useful[:useful_count]:
+            # logger.debug('useful: add [%s] to item pool', name)
             self.multiworld.itempool.append(self.create_item(name))
 
         for _ in range(remaining - useful_count):
-            self.multiworld.itempool.append(
-                self.create_item(self.get_filler_item_name()))
+            name = self.get_filler_item_name()
+            # logger.debug('filler: add [%s] to item pool', name)
+            self.multiworld.itempool.append(self.create_item(name))
 
     def get_filler_item_name(self):
         return self.random.choice(filler_item_names)

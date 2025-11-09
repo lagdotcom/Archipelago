@@ -36,8 +36,8 @@ all_goals = [
         RegionName.Lab4, RegionName.Lab4Orb, RegionName.Lab4Cell,
         RegionName.Lab5,
     }, {I.DarkSol}, {
-        I.RoyalTiara, I.DwarfKey, I.RuneKey, I.FalseIdol, I.CellKey, I.MysticRope, I.OrbOfTruth, I.Medallion, I.MagicRing, I.VialOfTears,
-        I.TrialOfCourage, I.TrialOfStrength, I.TrialOfCourage, I.TrialOfWisdom,
+        I.RoyalTiara, I.DwarfKey, I.RuneKey, I.OrbOfTruth, I.FalseIdol, I.MysticRope, I.CellKey, I.Medallion, I.MagicRing, I.VialOfTears,
+        I.TrialOfStrength, I.TrialOfCourage, I.TrialOfTruth, I.TrialOfWisdom,
         I.Gila, I.Dai, I.Jessa, I.EnterLab3,
         I.KaiserKrab, I.Tortolyde, I.Doppler, I.ShellBeast, I.DarkSol,
     }),
@@ -48,8 +48,8 @@ all_goals = [
         RegionName.Lab1Tru, RegionName.Tru, RegionName.TruIdol,
         RegionName.Wis,
     }, {I.TrialOfCourage, I.TrialOfStrength, I.TrialOfTruth, I.TrialOfWisdom}, {
-        I.RoyalTiara, I.DwarfKey, I.RuneKey, I.FalseIdol,
-        I.TrialOfCourage, I.TrialOfStrength, I.TrialOfTruth, I.TrialOfWisdom,
+        I.RoyalTiara, I.DwarfKey, I.RuneKey, I.OrbOfTruth, I.FalseIdol,
+        I.TrialOfStrength, I.TrialOfCourage, I.TrialOfTruth, I.TrialOfWisdom,
         I.Gila, I.Dai,
         I.KaiserKrab, I.Tortolyde, I.Doppler,
     }),
