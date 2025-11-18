@@ -6,7 +6,7 @@ from typing import Any, Callable, ClassVar, Optional, Sequence, Tuple
 from BaseClasses import CollectionState, Item, Location, MultiWorld, Region, Tutorial
 from .Goals import get_goal_data
 from .Items import all_items, items_by_name, item_name_groups, useful_item_names, filler_item_names
-from .Locations import all_locations, chest_locations, location_name_groups
+from .Locations import all_locations, location_name_groups
 from .Names import RegionName
 from .Options import SITDOptions
 from .Regions import all_regions, regions_by_name
@@ -117,6 +117,9 @@ class SITDWorld(World):
             region = multiworld.get_region(info.region_name, player)
             # logger.debug('add location [%s] to region [%s]', info.name, region.name)
             loc = SITDLocation(player, info.name, info.id, region)
+            if info.required_items:
+                capture = tuple(info.required_items)
+                loc.access_rule = lambda state: state.has_all(capture, player)
             region.locations.append(loc)
 
         # make connections
@@ -207,7 +210,7 @@ class SITDWorld(World):
     def generate_output(self, output_directory: str) -> None:
         patch = SITDProcedurePatch(player=self.player,
                                    player_name=self.multiworld.player_name[self.player])
-        write_tokens(self, patch, chest_locations)
+        write_tokens(self, patch, all_locations)
 
         rom_path = os.path.join(
             output_directory, f"{self.multiworld.get_out_file_name_base(self.player)}{patch.patch_file_ending}")

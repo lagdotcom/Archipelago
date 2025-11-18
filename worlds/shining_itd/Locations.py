@@ -8,6 +8,14 @@ mask_to_offset = {0x01: 0, 0x02: 1, 0x04: 2,
                   0x08: 3, 0x10: 4, 0x20: 5, 0x40: 6, 0x80: 7}
 
 
+class Replacement(NamedTuple):
+    address: int
+    size: int
+
+    def format(self, value: int):
+        return value.to_bytes(self.size, 'big')
+
+
 class LD(NamedTuple):
     id: int
     region_name: str
@@ -15,6 +23,7 @@ class LD(NamedTuple):
     check_address: int
     check_mask: int
     fixed_item: Optional[str] = None
+    required_items: Optional[set[str]] = None
 
     @property
     def name(self):
@@ -25,13 +34,23 @@ class LD(NamedTuple):
         return self.check_address >= CHEST_FLAG_START and self.check_address < CHEST_FLAG_END
 
     @property
-    def rom_location(self):
-        floor_no = (self.check_address - CHEST_FLAG_START) // 2
-        addr = CHEST_CONTENTS_BY_FLOOR[floor_no] + \
-            mask_to_offset[self.check_mask]
-        if not self.check_address & 1:
-            addr += 8
-        return addr
+    def rom_locations(self):
+        if self.is_chest:
+            floor_no = (self.check_address - CHEST_FLAG_START) // 2
+            addr = CHEST_CONTENTS_BY_FLOOR[floor_no] + \
+                mask_to_offset[self.check_mask]
+            if not self.check_address & 1:
+                addr += 8
+            return [Replacement(addr, 1)]
+        else:
+            if self.check_address == 0x1616 and self.check_mask == 0x01:
+                return [Replacement(0x5a141, 1)]
+            if self.check_address == 0x1618 and self.check_mask == 0x02:
+                return [Replacement(0x22a9f, 1), Replacement(0x22ab3, 1)]
+            if self.check_address == 0x161a and self.check_mask == 0x02:
+                return [Replacement(0x22226, 2), Replacement(0x22234, 2)]
+            raise Exception('Cannot get ROM locations for %04x/%02x' %
+                            (self.check_address, self.check_mask))
 
 
 lab1_locations = [
@@ -43,7 +62,7 @@ lab1_locations = [
     LD(517_00_05, R.Lab1, '100g Chest', 0x1621, 0x04),
     LD(517_00_06, R.Lab1, 'Defeat Kaiser Krab', 0x163F, 0x02, I.KaiserKrab),
     LD(517_00_07, R.Lab1, "Receive Dwarf's Key from Minister",
-       0x1616, 0x01, I.DwarfKey),
+       0x1616, 0x01, None, set([I.KaiserKrab])),
 
     LD(517_01_00, R.Lab1Str, 'Depoison Chest', 0x1621, 0x20),
     LD(517_01_01, R.Lab1Str, 'Herb Chest', 0x1621, 0x40),
@@ -156,7 +175,8 @@ lab2_locations = [
 lab3_locations = [
     LD(517_10_00, R.Lab3, 'Entered Labyrinth L3', 0x1605, 0x30, I.EnterLab3),
     LD(517_10_01, R.Lab3, 'Defeat Shell Beast', 0x1640, 0x10, I.ShellBeast),
-    LD(517_10_02, R.Lab3, 'Receive Medallion from Xern', 0x1618, 0x02, I.Medallion),
+    LD(517_10_02, R.Lab3, 'Receive Medallion from Xern', 0x1618,
+       0x02, I.Medallion),  # TODO what is the requirement for this?
     LD(517_10_03, R.Lab3, '500g Chest', 0x1625, 0x20),
     LD(517_10_04, R.Lab3, 'Mystic Rope Chest', 0x1624, 0x01),
     LD(517_10_05, R.Lab3, 'Healer Fruit Chest', 0x1624, 0x02),
@@ -191,7 +211,7 @@ lab4_locations = [
 
     LD(517_22_00, R.Lab4Cell, 'Meet Jessa', 0x163F, 0x01, I.Jessa),
     LD(517_22_01, R.Lab4Cell, 'Receive Magic Ring from King',
-       0x161A, 0x02, I.MagicRing),
+       0x161A, 0x02, None, set([I.Jessa])),
 ]
 
 lab5_locations = [
