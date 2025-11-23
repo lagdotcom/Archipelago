@@ -2,8 +2,9 @@ import logging
 import os
 import settings
 
-from typing import Any, ClassVar, Optional, Sequence, Tuple
-from BaseClasses import Item, Location, MultiWorld, Region, Tutorial
+from typing import Any, Callable, ClassVar, Iterable, Optional, Sequence, Tuple
+from BaseClasses import CollectionState, Item, Location, MultiWorld, Region, Tutorial
+from .Constants import game_name
 from .Data import Area
 from .Goals import get_goal_data
 from .Items import all_items, items_by_name, item_name_groups, useful_item_names, filler_item_names
@@ -14,22 +15,22 @@ from .Rom import REV02_UE_HASH, PhSt2ProcedurePatch, get_base_rom_path, write_to
 from ..AutoWorld import WebWorld, World
 from .Client import PhSt2Client  # type: ignore
 
-logger = logging.getLogger("Phantasy Star II")
+logger = logging.getLogger(game_name)
 
 
 class PhSt2Location(Location):
-    game: str = "Phantasy Star II"
+    game: str = game_name
 
 
 class PhSt2Item(Item):
-    game: str = "Phantasy Star II"
+    game: str = game_name
 
 
 class PhSt2Settings(settings.Group):
     class RomFile(settings.UserFilePath):
         """File name of the Phantasy Star II US/EU REV02 rom"""
-        copy_to = "Phantasy Star II (UE) (REV02) [!].gen"
-        description = "Phantasy Star II REV02 ROM File"
+        copy_to = 'Phantasy Star II (UE) (REV02) [!].gen'
+        description = 'Phantasy Star II REV02 ROM File'
         md5s = [REV02_UE_HASH]
 
         def browse(self: settings.T,
@@ -37,8 +38,8 @@ class PhSt2Settings(settings.Group):
                                                       Sequence[str]]]] = None,
                    **kwargs: Any) -> Optional[settings.T]:
             if not filetypes:
-                file_types = [("GEN", [".gen"]), ("BIN", [".bin"]),
-                              ("SMD", [".smd"]), ("68K", [".68k"]),]
+                file_types = [('GEN', ['.gen']), ('BIN', ['.bin']),
+                              ('SMD', ['.smd']), ('68K', ['.68k']),]
                 return super().browse(file_types, **kwargs)
             else:
                 return super().browse(filetypes, **kwargs)
@@ -56,12 +57,12 @@ class PhSt2Settings(settings.Group):
 
 class PhSt2Web(WebWorld):
     tutorials = [Tutorial(
-        "Multiworld Setup Guide",
-        "A guide to setting up the Phantasy Star II randomizer connected to an Archipelago Multiworld",
-        "English",
-        "setup_en.md",
-        "setup/en",
-        ["lagdotcom"]
+        'Multiworld Setup Guide',
+        'A guide to setting up the Phantasy Star II randomizer connected to an Archipelago Multiworld',
+        'English',
+        'setup_en.md',
+        'setup/en',
+        ['lagdotcom']
     )]
 
 
@@ -69,10 +70,10 @@ class PhSt2World(World):
     """
     Phantasy Star II is a JRPG where you explore the dark origins of Artificial Intelligence.
     """
-    game = "Phantasy Star II"
+    game = game_name
     options_dataclass = PhSt2Options
     options: PhSt2Options  # type: ignore
-    settings: ClassVar[PhSt2Options]  # type: ignore
+    settings: ClassVar[PhSt2Settings]  # type: ignore
     web = PhSt2Web()
     required_client_version = (0, 5, 0)
 
@@ -112,8 +113,7 @@ class PhSt2World(World):
             # logger.debug('add location [%s] to region [%s]', info.name, region.name)
             loc = PhSt2Location(player, info.name, info.id, region)
             if info.required_items:
-                capture = tuple(info.required_items)
-                loc.access_rule = lambda state: state.has_all(capture, player)
+                loc.access_rule = self.get_access_rule(info.required_items)
             region.locations.append(loc)
 
         # make connections
@@ -130,6 +130,10 @@ class PhSt2World(World):
                     # logger.debug('connect [%s] to [%s]', info.name, exit_name)
                     destination = multiworld.get_region(exit_name, player)
                     region.connect(destination, None, make_checker(player))
+
+    def get_access_rule(self, items: Iterable[str]) -> Callable[[CollectionState], bool]:
+        capture = tuple(items)
+        return lambda state: state.has_all(capture, self.player)
 
     def set_rules(self):
         goal = get_goal_data(self.options.goal.value)
@@ -192,5 +196,5 @@ class PhSt2World(World):
         write_tokens(self, patch, all_locations)
 
         rom_path = os.path.join(
-            output_directory, f"{self.multiworld.get_out_file_name_base(self.player)}{patch.patch_file_ending}")
+            output_directory, f'{self.multiworld.get_out_file_name_base(self.player)}{patch.patch_file_ending}')
         patch.write(rom_path)

@@ -14,6 +14,14 @@ class ItemData(NamedTuple):
     meseta: int = 0
     pool_quantity: int = 1
 
+    def get_chest_bytes(self):
+        if self.meseta > 0:
+            return (self.meseta & 0x7FFF).to_bytes(2, 'big')
+        elif self.code is not None:
+            return (0x8000 | self.code).to_bytes(2, 'big')
+        else:
+            raise Exception(f'Item {self.name} cannot be placed in chest!')
+
 
 key_items = [
     ItemData(452_1_001, I.SmallKey, 0x1, IC.progression),

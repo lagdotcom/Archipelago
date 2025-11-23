@@ -3,7 +3,7 @@ from typing import Iterable, TYPE_CHECKING
 
 from worlds.Files import APProcedurePatch, APTokenMixin, APTokenTypes
 
-from .Constants import NAME_SPACE, NAME_SPACE_LEN, GOAL_SPACE
+from .Constants import game_name, CHECKSUM_FAILED_JUMP, NAME_SPACE, NAME_SPACE_LEN, GOAL_SPACE, TREASURE_CHEST_CONTENT_ARRAY
 from .Items import items_by_id
 
 
@@ -12,13 +12,13 @@ if TYPE_CHECKING:
     from .Locations import LocationData
 
 
-REV02_UE_HASH = 'TODO'
+REV02_UE_HASH = '0fa38b12cf0ab0163d865600ac731a9a'
 
 AP_ITEM_CODE = 0  # TODO this makes it show up as Garbage
 
 
 class PhSt2ProcedurePatch(APProcedurePatch, APTokenMixin):
-    game = 'Phantasy Star II'
+    game = game_name
     hash = REV02_UE_HASH
     patch_file_ending = '.apphst2'
     result_file_ending = '.gen'
@@ -56,7 +56,7 @@ def write_tokens(world: 'PhSt2World', patch: PhSt2ProcedurePatch, locations: Ite
     # write player name
     raw_name = patch.player_name.encode('utf-8') + b'\0'
     if len(raw_name) > NAME_SPACE_LEN:
-        raise Exception("Name too long!")
+        raise Exception('Name too long!')
     patch.write_token(APTokenTypes.WRITE, NAME_SPACE, raw_name)
 
     # write goal number
@@ -67,6 +67,12 @@ def write_tokens(world: 'PhSt2World', patch: PhSt2ProcedurePatch, locations: Ite
     # patch.write_token(APTokenTypes.WRITE, APPLY_REWARD_MULTIPLIERS_GOLD, world.options.gold_multi.value.to_bytes(4, 'big'))
     # patch.write_token(APTokenTypes.WRITE, APPLY_REWARD_MULTIPLIERS_XP, world.options.xp_multi.value.to_bytes(4, 'big'))
 
+    # patch checksum failed jump out
+    patch.write_token(APTokenTypes.WRITE, CHECKSUM_FAILED_JUMP, bytes([
+        # nop, nop
+        0x4e, 0x71, 0x4e, 0x71,
+    ]))
+
     # patch items
     valid_locations = set([l.name for l in world.get_locations()])
     for location_data in locations:
@@ -76,19 +82,25 @@ def write_tokens(world: 'PhSt2World', patch: PhSt2ProcedurePatch, locations: Ite
         item_hex = AP_ITEM_CODE
         if not item is None:
             # don't bother replacing an item that is the same
-            if location_data.fixed_item == item.code:
+            if location_data.fixed_item == item.name:
                 continue
+            item_data = None
             if not item.code is None:
                 if item.code in items_by_id:
                     item_data = items_by_id[item.code]
                     if not item_data.code is None:
                         item_hex = item_data.code
             # print(item.name, 'in', location_data.name, ':', hex(item_hex))
-            if location_data.rom_location == None:
+            if location_data.chest_index is not None:
+                rom_location = TREASURE_CHEST_CONTENT_ARRAY + location_data.chest_index * 2
+                if item_data:
+                    patch.write_token(APTokenTypes.WRITE,
+                                      rom_location, item_data.get_chest_bytes())
+            elif location_data.rom_location is not None:
+                patch.write_token(APTokenTypes.WRITE,
+                                  location_data.rom_location, bytes([item_hex]))
+            else:
                 raise Exception(
                     f'Do not know how to put {item.name} at {location_data.name}')
-
-            patch.write_token(APTokenTypes.WRITE,
-                              location_data.rom_location, bytes([item_hex]))
 
     patch.write_file('token_data.bin', patch.get_token_binary())

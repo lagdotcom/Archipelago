@@ -11,18 +11,22 @@ class LocationData(NamedTuple):
     rom_location: Optional[int] = None
     fixed_item: Optional[str] = None
     ram_location: Optional[int] = None
-    ram_check: Optional[int] = None
-    additional_flag_requirement: Optional[int] = None
+    ram_check: int = 1
+    extra_location: Optional[int] = None
+    extra_check: int = 1
     required_items: Optional[set[str]] = None
 
-    def fix(self, fixed_item: str, ram_location: int, ram_check: int = 1):
-        return LocationData(self.id, self.region_name, self.name, self.chest_index, self.rom_location, fixed_item, ram_location, ram_check, self.additional_flag_requirement, self.required_items)
+    def fix(self, fixed_item: str, ram_location: Optional[int] = None, ram_check: int = 1):
+        return LocationData(self.id, self.region_name, self.name, self.chest_index, self.rom_location, fixed_item, ram_location, ram_check, self.extra_location, self.extra_check, self.required_items)
 
-    def add_flag(self, additional_flag_requirement: int):
-        return LocationData(self.id, self.region_name, self.name, self.chest_index, self.rom_location, self.fixed_item, self.ram_location, self.ram_check, additional_flag_requirement, self.required_items)
+    def ram_flag(self, ram_location: int, ram_check: int):
+        return LocationData(self.id, self.region_name, self.name, self.chest_index, self.rom_location, self.fixed_item, ram_location, ram_check, self.extra_location, self.extra_check, self.required_items)
+
+    def extra_flag(self, extra_location: int, extra_check: int):
+        return LocationData(self.id, self.region_name, self.name, self.chest_index, self.rom_location, self.fixed_item, self.ram_location, self.ram_check, extra_location, extra_check, self.required_items)
 
     def add_items(self, required_items: set[str]):
-        return LocationData(self.id, self.region_name, self.name, self.chest_index, self.rom_location, self.fixed_item, self.ram_location, self.ram_check, self.additional_flag_requirement, required_items)
+        return LocationData(self.id, self.region_name, self.name, self.chest_index, self.rom_location, self.fixed_item, self.ram_location, self.ram_check, self.extra_location, self.extra_check, required_items)
 
 
 skure_locations = [
@@ -42,9 +46,9 @@ skure_locations = [
 
 esper_mansion_locations = [
     LocationData(452_00_14, A.Dezolis, 'Esper Mansion - Prism',
-                 0xE).add_flag(0xc743),
+                 0xE).extra_flag(0xc743, 2),
     LocationData(452_00_15, A.Dezolis, 'Esper Mansion - NeiSword',
-                 0xF).add_flag(0xc744).add_items({I.NeiArmor, I.NeiCape, I.NeiCrown, I.NeiEmel, I.NeiMet, I.NeiShield, I.NeiShot, I.NeiSlasher}),
+                 0xF).extra_flag(0xc744, 1).add_items({I.NeiArmor, I.NeiCape, I.NeiCrown, I.NeiEmel, I.NeiMet, I.NeiShield, I.NeiShot, I.NeiSlasher}),
 ]
 
 shure_locations = [
@@ -62,8 +66,10 @@ shure_locations = [
     LocationData(452_00_23, A.Shure, 'Shure - 200 meseta', 0x17),
     LocationData(452_00_24, A.Shure, 'Shure - SilRibbon', 0x18),
 
-    LocationData(452_01_01, A.Shure, 'Shure - Small Key', None, 0xdbe3),
-    LocationData(452_01_02, A.Shure, 'Shure - Letter', None, 0xdbf3),
+    LocationData(452_01_01, A.Shure, 'Shure - Small Key',
+                 None, 0xdbe3).ram_flag(0xc721, 1),
+    LocationData(452_01_02, A.Shure, 'Shure - Letter',
+                 None, 0xdbf3).ram_flag(0xc721, 2),
 ]
 
 nido_locations = [
@@ -73,7 +79,7 @@ nido_locations = [
     LocationData(452_00_28, A.Nido, 'Nido - Trimate', 0x1C),
     LocationData(452_00_29, A.Nido, 'Nido - 60 meseta', 0x1D),
 
-    LocationData(452_01_10, A.Nido, 'Nido - Teim', None,
+    LocationData(452_01_03, A.Nido, 'Nido - Teim', None,
                  0xdc6d).add_items({I.Letter}),
 ]
 
@@ -150,7 +156,7 @@ bio_systems_lab_locations = [
     LocationData(452_00_63, A.BioSystemsLab,
                  'Bio-Systems Lab - Dynamite', 0x3F),
 
-    LocationData(452_01_03, A.BioSystemsLabBasement,
+    LocationData(452_01_04, A.BioSystemsLabBasement,
                  'Bio-Systems Lab - Recorder', None, 0xdbfd),
 ]
 
@@ -203,44 +209,46 @@ guaron_locations = [
 ]
 
 uzo_locations = [
-    LocationData(452_01_00, A.Uzo, 'Uzo - Maruera Tree', None, 0xdbad),
+    LocationData(452_01_05, A.Uzo, 'Uzo - Maruera Tree', None, 0xdbad),
 ]
 
 paseo_locations = [
-    LocationData(452_01_08, A.Motavia, 'Paseo - Give Recorder to Governor',
+    LocationData(452_01_06, A.Motavia, 'Paseo - Give Recorder to Governor',
                  None, 0xc4d1).add_items({I.Recorder}),
 ]
 
 oputa_locations = [
     # TODO this will be a weird Client check...
-    LocationData(452_02_06, A.Oputa, 'Oputa - Ustvestia').fix(I.MusikFlag, -1),
+    LocationData(452_02_06, A.Oputa, 'Oputa - Ustvestia').fix(I.MusikFlag),
 ]
 
 control_tower_locations = [
     # TODO all four card locations are handled by one function; hard to change
-    LocationData(452_01_04, A.ControlTower,
-                 'Control Tower - Green Card').fix(I.GreenCard, -1),
-    LocationData(452_01_05, A.ControlTower,
-                 'Control Tower - Blue Card').fix(I.BlueCard, -1),
-    LocationData(452_01_06, A.ControlTower,
-                 'Control Tower - Yellow Card').fix(I.YellowCard, -1),
     LocationData(452_01_07, A.ControlTower,
-                 'Control Tower - Red Card').fix(I.RedCard, -1),
+                 'Control Tower - Green Card').fix(I.GreenCard),
+    LocationData(452_01_08, A.ControlTower,
+                 'Control Tower - Blue Card').fix(I.BlueCard),
+    LocationData(452_01_09, A.ControlTower,
+                 'Control Tower - Yellow Card').fix(I.YellowCard),
+    LocationData(452_01_10, A.ControlTower,
+                 'Control Tower - Red Card').fix(I.RedCard),
 ]
 
 kueri_locations = [
-    LocationData(452_01_09, A.Kueri, 'Kueri - Give MruraLeaf to Researcher',
-                 None, 0xc94f).add_items({I.MruraLeaf}),
+    # TODO check this
+    LocationData(452_01_11, A.Kueri, 'Kueri - Give MruraLeaf to Researcher',
+                 None, 0xc94f).add_items({I.MruraLeaf}).ram_flag(0xc72b, 1),
 ]
 
 gaira_locations = [
-    LocationData(452_02_00, A.Gaira, 'Gaira - Console').fix(
+    LocationData(452_02_07, A.Gaira, 'Gaira - Console').fix(
         I.SpaceshipFlag, 0xc73f),
 ]
 
 noah_locations = [
-    LocationData(452_02_00, A.Noah, 'Noah - Mother Brain').fix(
-        I.WinTheGameFlag, 0xf600, 8),
+    # TODO can check RAM:F600 = 8, but that sucks
+    LocationData(452_02_08, A.Noah, 'Noah - Mother Brain').fix(
+        I.WinTheGameFlag),
 ]
 
 # TODO LocationData(452_00_13, 'Unknown200Meseta', 0xD),
