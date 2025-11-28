@@ -14,6 +14,7 @@ from .Constants import (
     game_mode,
 )
 from .Data import Area as A, Item as I
+from .Items import ItemType
 
 
 class FlagCheck(NamedTuple):
@@ -41,15 +42,23 @@ class LocationData:
     fixed_item: Optional[str] = None
     checks: list[FlagCheck]
     required_items: Optional[set[str]] = None
+    restricted_types: set[ItemType]
 
     def __init__(
-        self, type: str, id: int, region_name: str, name: str, vanilla_item: str
+        self,
+        type: str,
+        id: int,
+        region_name: str,
+        name: str,
+        vanilla_item: str,
+        restricted_types: set[ItemType],
     ):
         self.type = type
         self.id = id
         self.region_name = region_name
         self.name = name
         self.vanilla_item = vanilla_item
+        self.restricted_types = restricted_types
         self.checks = []
 
     def at(self, span: IntSpan):
@@ -71,7 +80,14 @@ class LocationData:
 
 def chest(id: int, region_name: str, name: str, chest_index: int, vanilla_item: str):
     return (
-        LocationData("chest", id, region_name, name, vanilla_item)
+        LocationData(
+            "chest",
+            id,
+            region_name,
+            name,
+            vanilla_item,
+            {ItemType.GARBAGE, ItemType.ITEM, ItemType.MONEY},
+        )
         .at(IntSpan(ROM, TREASURE_CHEST_CONTENT_ARRAY + chest_index * 2, 2))
         .flag(chest_flags.address + chest_index)
     )
@@ -85,9 +101,9 @@ def flag(
     ram_location: int,
     predicate: Predicate[int] = equals1,
 ):
-    return LocationData("flag", id, region_name, name, vanilla_item).flag(
-        ram_location, predicate
-    )
+    return LocationData(
+        "flag", id, region_name, name, vanilla_item, {ItemType.FLAG}
+    ).flag(ram_location, predicate)
 
 
 def granted(
@@ -100,7 +116,7 @@ def granted(
     predicate: Predicate[int] = equals1,
 ):
     return (
-        LocationData("granted", id, region_name, name, vanilla_item)
+        LocationData("granted", id, region_name, name, vanilla_item, {ItemType.ITEM})
         .at(IntSpan(ROM, rom_address, 1))
         .flag(ram_address, predicate)
     )

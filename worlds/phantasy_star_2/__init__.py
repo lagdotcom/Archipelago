@@ -13,9 +13,10 @@ from .Items import (
     item_name_groups,
     items_by_name,
     useful_item_names,
+    ItemType,
 )
-from .Locations import all_locations, location_name_groups
-from .Options import PhSt2Options
+from .Locations import all_locations, locations_by_name, location_name_groups
+from .Options import PhSt2Options, DIST_SHUFFLE
 from .Regions import all_regions, regions_by_name
 from .Rom import REV02_UE_HASH, PhSt2ProcedurePatch, get_base_rom_path, write_tokens
 from ..AutoWorld import WebWorld, World
@@ -30,6 +31,13 @@ class PhSt2Location(Location):
 
 class PhSt2Item(Item):
     game: str = game_name
+
+
+def get_item_type(item: Item):
+    if isinstance(item, PhSt2Item):
+        return items_by_name[item.name].type
+    # TODO if possible to fix NPC dialogue, this can be changed to ITEM for greater rando potential
+    return ItemType.GARBAGE
 
 
 class PhSt2Settings(settings.Group):
@@ -127,6 +135,7 @@ class PhSt2World(World):
             region = multiworld.get_region(info.region_name, player)
             # logger.debug('add location [%s] to region [%s]', info.name, region.name)
             loc = PhSt2Location(player, info.name, info.id, region)
+            loc.item_rule = self.get_item_rule(info.restricted_types)
             if info.required_items:
                 loc.access_rule = self.get_access_rule(info.required_items)
             region.locations.append(loc)
@@ -152,6 +161,10 @@ class PhSt2World(World):
         capture = tuple(items)
         return lambda state: state.has_all(capture, self.player)
 
+    def get_item_rule(self, types: Iterable[ItemType]) -> Callable[[Item], bool]:
+        capture = tuple(types)
+        return lambda item: get_item_type(item) in capture
+
     def set_rules(self):
         goal = get_goal_data(self.options.goal.value)
         self.multiworld.completion_condition[self.player] = (
@@ -170,7 +183,7 @@ class PhSt2World(World):
     def create_items(self):
         options = self.options
         goal = get_goal_data(options.goal.value)
-        added_items: list[str] = []
+        required_items: list[str] = []
 
         # required_item_names = [item.name for item in required_items]
         # place_early_names = set(required_item_names + reward_item_names)
@@ -180,32 +193,40 @@ class PhSt2World(World):
             fixed_location = self.get_fixed_location_for_item(name)
             if fixed_location:
                 # logger.debug('force [%s] at [%s]', name, fixed_location.name)
-                self.multiworld.get_location(
-                    fixed_location.name, self.player
-                ).place_locked_item(item)
+                self.get_location(fixed_location.name).place_locked_item(item)
             else:
-                # logger.debug('required: add [%s] to item pool', item.name)
-                self.multiworld.itempool.append(item)
-            added_items.append(item.name)
+                required_items.append(item.name)
 
-        remaining = len(list(self.get_locations())) - len(added_items)
-        # print(f'remaining location count: {remaining}')
+        if options.item_distribution.value == DIST_SHUFFLE:
+            for location in self.get_locations():
+                if not location.item:
+                    data = locations_by_name[location.name]
+                    # logger.debug("shuffle: add [%s] to item pool" % data.vanilla_item)
+                    self.multiworld.itempool.append(self.create_item(data.vanilla_item))
 
-        if options.useful_items.value > 0:
-            useful = useful_item_names[:]
-            useful_count = min(
-                int(remaining * 100 // options.useful_items.value), len(useful)
-            )
-            self.random.shuffle(useful)
-            for name in useful[:useful_count]:
-                # logger.debug('useful: add [%s] to item pool', name)
+        else:
+            for required in required_items:
+                # logger.debug("required: add [%s] to item pool", required)
+                self.multiworld.itempool.append(self.create_item(required))
+
+            remaining = len(list(self.get_locations())) - len(required_items)
+            # print(f"remaining location count: {remaining}")
+
+            if options.useful_items.value > 0:
+                useful = useful_item_names[:]
+                useful_count = min(
+                    int(remaining * options.useful_items.value // 100), len(useful)
+                )
+                self.random.shuffle(useful)
+                for name in useful[:useful_count]:
+                    # logger.debug("useful: add [%s] to item pool", name)
+                    self.multiworld.itempool.append(self.create_item(name))
+                    remaining -= 1
+
+            for _ in range(remaining):
+                name = self.get_filler_item_name()
+                # logger.debug("filler: add [%s] to item pool", name)
                 self.multiworld.itempool.append(self.create_item(name))
-                remaining -= 1
-
-        for _ in range(remaining):
-            name = self.get_filler_item_name()
-            # logger.debug('filler: add [%s] to item pool', name)
-            self.multiworld.itempool.append(self.create_item(name))
 
     def get_filler_item_name(self):
         return self.random.choice(filler_item_names)

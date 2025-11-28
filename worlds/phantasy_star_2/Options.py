@@ -39,8 +39,25 @@ class XPMultiplier(Range):
     default = 2
 
 
+DIST_SHUFFLE = 0
+DIST_RANDO = 1
+
+
+class ItemDistribution(Choice):
+    """
+    Shuffle: Shuffle vanilla item placement.
+    Rando: Randomly add items to the game.
+    """
+
+    display_name = "Item Distribution"
+    default = DIST_SHUFFLE
+    option_shuffle = DIST_SHUFFLE
+    option_rando = DIST_RANDO
+
+
 class UsefulItems(Range):
     """
+    (only applies to Item Distribution = Rando)
     Percentage of items in the pool that are 'useful'.
     """
 
@@ -55,4 +72,5 @@ class PhSt2Options(PerGameCommonOptions):
     goal: Goal
     meseta_multi: MesetaMultiplier
     xp_multi: XPMultiplier
+    item_distribution: ItemDistribution
     useful_items: UsefulItems

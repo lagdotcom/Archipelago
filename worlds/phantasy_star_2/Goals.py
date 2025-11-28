@@ -95,7 +95,7 @@ all_goals = [
             A.Shure,
             A.ShureLockedChests,
             A.Nido,
-            A.Oputa,
+            # A.Oputa, no need to learn MUSIK
             A.BioSystemsLab,
             A.BioSystemsLabBasement,
             A.Roron,
