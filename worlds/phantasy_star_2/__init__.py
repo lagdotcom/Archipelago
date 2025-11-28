@@ -183,6 +183,7 @@ class PhSt2World(World):
     def create_items(self):
         options = self.options
         goal = get_goal_data(options.goal.value)
+        locked_items: list[str] = []
         required_items: list[str] = []
 
         # required_item_names = [item.name for item in required_items]
@@ -194,6 +195,7 @@ class PhSt2World(World):
             if fixed_location:
                 # logger.debug('force [%s] at [%s]', name, fixed_location.name)
                 self.get_location(fixed_location.name).place_locked_item(item)
+                locked_items.append(item.name)
             else:
                 required_items.append(item.name)
 
@@ -209,7 +211,11 @@ class PhSt2World(World):
                 # logger.debug("required: add [%s] to item pool", required)
                 self.multiworld.itempool.append(self.create_item(required))
 
-            remaining = len(list(self.get_locations())) - len(required_items)
+            remaining = (
+                len(list(self.get_locations()))
+                - len(required_items)
+                - len(locked_items)
+            )
             # print(f"remaining location count: {remaining}")
 
             if options.useful_items.value > 0:

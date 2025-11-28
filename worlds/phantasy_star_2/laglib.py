@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Callable, Iterable, Mapping, NamedTuple
+from typing import TYPE_CHECKING, Callable, Iterable, Mapping, NamedTuple, Sequence
 
 from BaseClasses import CollectionState
 import worlds._bizhawk as bizhawk
@@ -38,9 +38,10 @@ class MemorySpan(NamedTuple):
         return self.address, self.size, self.region
 
 
-class MemoryBlock(NamedTuple):
-    span: MemorySpan
-    contents: bytes
+class MemoryBlock:
+    def __init__(self, span: MemorySpan, contents: bytes):
+        self.span = span
+        self.contents = contents
 
     def contains(self, span: MemorySpan):
         return (
@@ -51,6 +52,12 @@ class MemoryBlock(NamedTuple):
     def extract(self, span: MemorySpan):
         start = span.address - self.span.address
         return self.contents[start : start + span.size]
+
+    def patch(self, span: MemorySpan, data: bytes):
+        start = span.address - self.span.address
+        self.contents = (
+            self.contents[:start] + data + self.contents[start + span.size :]
+        )
 
 
 class MemoryManager:
@@ -78,11 +85,42 @@ class MemoryManager:
     def get(self, region: str, address: int):
         return self.get_bytes(MemorySpan(region, address, 1))[0]
 
-    def get_bytes(self, needle: MemorySpan):
+    def get_block_for_span(self, span: MemorySpan):
         for block in self.blocks:
-            if block.contains(needle):
-                return block.extract(needle)
-        raise Exception(f"Manager does not have {needle}")
+            if block.contains(span):
+                return block
+
+    def get_bytes(self, span: MemorySpan):
+        block = self.get_block_for_span(span)
+        if block:
+            return block.extract(span)
+        raise Exception(f"Manager does not have {span}")
+
+    async def write_span(
+        self, ctx: "BizHawkClientContext", span: "IntSpan", new_value: int
+    ):
+        old_value = span.get(self)
+        if await bizhawk.guarded_write(
+            ctx.bizhawk_ctx, [span.as_write(new_value)], [span.as_write(old_value)]
+        ):
+            block = self.get_block_for_span(span)
+            if block:
+                block.patch(span, span.format(new_value))
+            return True
+
+    async def write_list(
+        self,
+        ctx: "BizHawkClientContext",
+        write_list: Sequence[tuple[int, bytes, str]],
+        guard_list: Sequence[tuple[int, bytes, str]],
+    ):
+        if await bizhawk.guarded_write(ctx.bizhawk_ctx, write_list, guard_list):
+            for addr, data, region in write_list:
+                span = IntSpan(region, addr, len(data))
+                block = self.get_block_for_span(span)
+                if block:
+                    block.patch(span, data)
+            return True
 
     def _log_change(self, old: MemoryBlock, new: MemoryBlock):
         for i in range(len(old.contents)):
@@ -108,6 +146,9 @@ class IntSpan(MemorySpan):
 
     def format(self, value: int):
         return value.to_bytes(self.size, "big")
+
+    def as_write(self, value: int):
+        return self.address, self.format(value), self.region
 
 
 class StrSpan(MemorySpan):

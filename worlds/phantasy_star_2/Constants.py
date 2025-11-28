@@ -10,6 +10,10 @@ ram_names = {
     0xC601: "partyNum",
     0xC605: "partyJoined",
     0xC607: "partyJoinNext",
+    0xC609: "partyChar1",
+    0xC60B: "partyChar2",
+    0xC60D: "partyChar3",
+    0xC60F: "partyChar4",
     0xC641: "mapIndex",
     0xC706: "Oputa",
     0xC707: "Zema",
@@ -147,6 +151,7 @@ ram_names = {
     0xC7DB: "NeiCape",
     0xC7DC: "GuaronCrystCape",
     0xC7DD: "NeiArmor",
+    0xC7FF: "apItemCount",
     0xDE55: "windowIndex",
     0xDE57: "windowRoutine1",
     0xDE59: "windowRoutine2",
@@ -160,16 +165,36 @@ ram_names = {
     0xFFF0: "openingEndingFlag",
 }
 
-other_interesting_flags = IntSpan(RAM, 0xC600, 8)
+party_size = IntSpan(RAM, 0xC600, 2)
+party_composition = [
+    IntSpan(RAM, 0xC608, 2),
+    IntSpan(RAM, 0xC60A, 2),
+    IntSpan(RAM, 0xC60C, 2),
+    IntSpan(RAM, 0xC60E, 2),
+]
+current_money = IntSpan(RAM, 0xC620, 4)
+
 map_index = IntSpan(RAM, 0xC640, 2)
 quest_flags = IntSpan(RAM, 0xC700, 0x53)
 chest_flags = IntSpan(RAM, 0xC780, 0x94)
+received_item_storage = IntSpan(RAM, 0xC7FE, 2)
 script_status = IntSpan(RAM, 0xCD00, 2)
 window_status = IntSpan(RAM, 0xDE54, 10)
 interaction_status = IntSpan(RAM, 0xDE6E, 4)
 game_mode = IntSpan(RAM, 0xF600, 1)
 scene_status = IntSpan(RAM, 0xF750, 4)
 opening_ending_flag = IntSpan(RAM, 0xFFF0, 1)
+
+party_inventories = [
+    IntSpan(RAM, 0xC027, 17),
+    IntSpan(RAM, 0xC067, 17),
+    IntSpan(RAM, 0xC0A7, 17),
+    IntSpan(RAM, 0xC0E7, 17),
+    IntSpan(RAM, 0xC127, 17),
+    IntSpan(RAM, 0xC167, 17),
+    IntSpan(RAM, 0xC1A7, 17),
+    IntSpan(RAM, 0xC1E7, 17),
+]
 
 
 class GameMode(Enum):
