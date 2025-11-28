@@ -7,7 +7,13 @@ from BaseClasses import CollectionState, Item, Location, MultiWorld, Region, Tut
 from .Constants import game_name
 from .Data import Area
 from .Goals import get_goal_data
-from .Items import all_items, items_by_name, item_name_groups, useful_item_names, filler_item_names
+from .Items import (
+    all_items,
+    filler_item_names,
+    item_name_groups,
+    items_by_name,
+    useful_item_names,
+)
 from .Locations import all_locations, location_name_groups
 from .Options import PhSt2Options
 from .Regions import all_regions, regions_by_name
@@ -29,17 +35,23 @@ class PhSt2Item(Item):
 class PhSt2Settings(settings.Group):
     class RomFile(settings.UserFilePath):
         """File name of the Phantasy Star II US/EU REV02 rom"""
-        copy_to = 'Phantasy Star II (UE) (REV02) [!].gen'
-        description = 'Phantasy Star II REV02 ROM File'
+
+        copy_to = "Phantasy Star II (UE) (REV02) [!].gen"
+        description = "Phantasy Star II REV02 ROM File"
         md5s = [REV02_UE_HASH]
 
-        def browse(self: settings.T,
-                   filetypes: Optional[Sequence[Tuple[str,
-                                                      Sequence[str]]]] = None,
-                   **kwargs: Any) -> Optional[settings.T]:
+        def browse(
+            self: settings.T,
+            filetypes: Optional[Sequence[Tuple[str, Sequence[str]]]] = None,
+            **kwargs: Any,
+        ) -> Optional[settings.T]:
             if not filetypes:
-                file_types = [('GEN', ['.gen']), ('BIN', ['.bin']),
-                              ('SMD', ['.smd']), ('68K', ['.68k']),]
+                file_types = [
+                    ("GEN", [".gen"]),
+                    ("BIN", [".bin"]),
+                    ("SMD", [".smd"]),
+                    ("68K", [".68k"]),
+                ]
                 return super().browse(file_types, **kwargs)
             else:
                 return super().browse(filetypes, **kwargs)
@@ -56,20 +68,23 @@ class PhSt2Settings(settings.Group):
 
 
 class PhSt2Web(WebWorld):
-    tutorials = [Tutorial(
-        'Multiworld Setup Guide',
-        'A guide to setting up the Phantasy Star II randomizer connected to an Archipelago Multiworld',
-        'English',
-        'setup_en.md',
-        'setup/en',
-        ['lagdotcom']
-    )]
+    tutorials = [
+        Tutorial(
+            "Multiworld Setup Guide",
+            "A guide to setting up the Phantasy Star II randomizer connected to an Archipelago Multiworld",
+            "English",
+            "setup_en.md",
+            "setup/en",
+            ["lagdotcom"],
+        )
+    ]
 
 
 class PhSt2World(World):
     """
     Phantasy Star II is a JRPG where you explore the dark origins of Artificial Intelligence.
     """
+
     game = game_name
     options_dataclass = PhSt2Options
     options: PhSt2Options  # type: ignore
@@ -95,7 +110,7 @@ class PhSt2World(World):
         options = self.options
         goal = get_goal_data(options.goal.value)
 
-        menu = Region('Menu', player, multiworld)
+        menu = Region("Menu", player, multiworld)
         multiworld.regions.append(menu)
 
         # make regions
@@ -124,21 +139,24 @@ class PhSt2World(World):
                 continue
             if len(info.exits):
                 region = multiworld.get_region(info.name, player)
-                for (exit_name, make_checker) in info.exits.items():
+                for exit_name, make_checker in info.exits.items():
                     if not goal.has_region(exit_name):
                         continue
                     # logger.debug('connect [%s] to [%s]', info.name, exit_name)
                     destination = multiworld.get_region(exit_name, player)
                     region.connect(destination, None, make_checker(player))
 
-    def get_access_rule(self, items: Iterable[str]) -> Callable[[CollectionState], bool]:
+    def get_access_rule(
+        self, items: Iterable[str]
+    ) -> Callable[[CollectionState], bool]:
         capture = tuple(items)
         return lambda state: state.has_all(capture, self.player)
 
     def set_rules(self):
         goal = get_goal_data(self.options.goal.value)
-        self.multiworld.completion_condition[self.player] = goal.get_completion_function(
-            self.player)
+        self.multiworld.completion_condition[self.player] = (
+            goal.get_completion_function(self.player)
+        )
 
     def create_item(self, name: str):
         item = items_by_name[name]
@@ -163,7 +181,8 @@ class PhSt2World(World):
             if fixed_location:
                 # logger.debug('force [%s] at [%s]', name, fixed_location.name)
                 self.multiworld.get_location(
-                    fixed_location.name, self.player).place_locked_item(item)
+                    fixed_location.name, self.player
+                ).place_locked_item(item)
             else:
                 # logger.debug('required: add [%s] to item pool', item.name)
                 self.multiworld.itempool.append(item)
@@ -175,7 +194,8 @@ class PhSt2World(World):
         if options.useful_items.value > 0:
             useful = useful_item_names[:]
             useful_count = min(
-                int(remaining * 100 // options.useful_items.value), len(useful))
+                int(remaining * 100 // options.useful_items.value), len(useful)
+            )
             self.random.shuffle(useful)
             for name in useful[:useful_count]:
                 # logger.debug('useful: add [%s] to item pool', name)
@@ -192,9 +212,12 @@ class PhSt2World(World):
 
     def generate_output(self, output_directory: str):
         patch = PhSt2ProcedurePatch(
-            player=self.player, player_name=self.multiworld.player_name[self.player])
+            player=self.player, player_name=self.multiworld.player_name[self.player]
+        )
         write_tokens(self, patch, all_locations)
 
         rom_path = os.path.join(
-            output_directory, f'{self.multiworld.get_out_file_name_base(self.player)}{patch.patch_file_ending}')
+            output_directory,
+            f"{self.multiworld.get_out_file_name_base(self.player)}{patch.patch_file_ending}",
+        )
         patch.write(rom_path)

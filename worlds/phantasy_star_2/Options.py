@@ -2,23 +2,27 @@ from dataclasses import dataclass
 
 from Options import PerGameCommonOptions, Range, Choice
 
-from .Goals import GOAL_MOTHER_BRAIN
+from .Goals import GOAL_MOTHER_BRAIN, GOAL_NEIFIRST
 
 
 class Goal(Choice):
     """
     Mother Brain: Finish the whole game.
+    Neifirst: Beat Neifirst at Climatrol.
     """
-    display_name = 'Goal'
+
+    display_name = "Goal"
     default = GOAL_MOTHER_BRAIN
     option_mother_brain = GOAL_MOTHER_BRAIN
+    option_neifirst = GOAL_NEIFIRST
 
 
 class MesetaMultiplier(Range):
     """
     Multiplier applied to meseta earned from battle.
     """
-    display_name = 'Meseta Multiplier'
+
+    display_name = "Meseta Multiplier"
     range_start = 1
     range_end = 100
     default = 2
@@ -28,7 +32,8 @@ class XPMultiplier(Range):
     """
     Multiplier applied to experience earned from battle.
     """
-    display_name = 'XP Multiplier'
+
+    display_name = "XP Multiplier"
     range_start = 1
     range_end = 100
     default = 2
@@ -38,15 +43,11 @@ class UsefulItems(Range):
     """
     Percentage of items in the pool that are 'useful'.
     """
-    display_name = 'Useful Items'
+
+    display_name = "Useful Items"
     range_start = 0
     range_end = 100
     default = 75
-
-
-# TODO shuffle instead of random items
-
-# TODO death link lol
 
 
 @dataclass
