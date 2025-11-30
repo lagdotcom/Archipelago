@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from Options import OptionGroup, PerGameCommonOptions, Range, Choice
+from Options import Choice, OptionGroup, PerGameCommonOptions, Range, Toggle
 
 from .Goals import GOAL_MOTHER_BRAIN, GOAL_NEIFIRST
 
@@ -78,6 +78,14 @@ class UsefulItems(Range):
     default = 75
 
 
+class RandomiseTechs(Toggle):
+    """
+    Randomise the techs that each character learns. They will still learn them at the same levels.
+    """
+
+    display_name = "Randomise Techs"
+
+
 ENCOUNTER_DOUBLE = 2
 ENCOUNTER_NORMAL = 3
 ENCOUNTER_HALF = 4
@@ -114,6 +122,7 @@ class PhSt2Options(PerGameCommonOptions):
     starting_meseta: StartingMeseta
     item_distribution: ItemDistribution
     useful_items: UsefulItems
+    randomise_techs: RandomiseTechs
     meseta_multi: MesetaMultiplier
     xp_multi: XPMultiplier
     encounter_rate: EncounterRate
@@ -122,7 +131,7 @@ class PhSt2Options(PerGameCommonOptions):
 
 option_groups = [
     OptionGroup("Gameplay Options", [Goal, StartingMeseta]),
-    OptionGroup("Randomisation", [ItemDistribution, UsefulItems]),
+    OptionGroup("Randomisation", [ItemDistribution, UsefulItems, RandomiseTechs]),
     OptionGroup(
         "Quality of Life",
         [MesetaMultiplier, XPMultiplier, EncounterRate, MovementSpeed],
@@ -135,6 +144,7 @@ options_presets = {
         "starting_meseta": 200,
         "item_distribution": DIST_SHUFFLE,
         "useful_items": 0,
+        "randomise_techs": 0,
         "meseta_multi": 1,
         "xp_multi": 1,
         "encounter_rate": ENCOUNTER_NORMAL,
@@ -145,6 +155,7 @@ options_presets = {
         "starting_meseta": 1000,
         "item_distribution": DIST_SHUFFLE,
         "useful_items": 0,
+        "randomise_techs": 0,
         "meseta_multi": 3,
         "xp_multi": 5,
         "encounter_rate": ENCOUNTER_HALF,

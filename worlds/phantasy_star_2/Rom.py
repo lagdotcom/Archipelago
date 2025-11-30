@@ -26,6 +26,7 @@ from .Constants import (
     PATCH_SET_MUSIK_FLAG,
     PATCH_SET_RECORDER_FLAG,
     STARTING_MESETA_AMOUNT,
+    TECH_LEARN_TABLES,
 )
 from .Items import items_by_id
 from .Options import (
@@ -36,6 +37,13 @@ from .Options import (
     ENCOUNTER_QUARTER,
     SPEED_NORMAL,
     SPEED_QUADRUPLE,
+)
+from .Techs import (
+    character_names,
+    techs_by_name,
+    total_normal_tech_pool,
+    total_battle_techs,
+    total_map_techs,
 )
 
 
@@ -544,6 +552,33 @@ def write_tokens(
         STARTING_MESETA_AMOUNT,
         world.options.starting_meseta.value.to_bytes(4, "big"),
     )
+
+    if world.options.randomise_techs.value:
+        pool = total_normal_tech_pool[:]
+        offset = TECH_LEARN_TABLES
+        for char_name in character_names:
+            battle_ids: list[int] = []
+            battle_names = set[str]()
+            map_ids: list[int] = []
+            map_names = set[str]()
+            while len(battle_ids) < total_battle_techs[char_name]:
+                tech_name = world.random.choice(pool)
+                tech = techs_by_name[tech_name]
+                if tech.battle:
+                    battle_ids.append(tech.id)
+                    battle_names.add(tech_name)
+                    if tech.map:
+                        map_ids.append(tech.id)
+                        map_names.add(tech_name)
+            while len(map_ids) < total_map_techs[char_name]:
+                tech_name = world.random.choice(pool)
+                tech = techs_by_name[tech_name]
+                if tech.map:
+                    map_ids.append(tech.id)
+                    map_names.add(tech_name)
+            patch.write_token(APTokenTypes.WRITE, offset, bytes(map_ids))
+            patch.write_token(APTokenTypes.WRITE, offset + 16, bytes(battle_ids))
+            offset += 32
 
     # patch items
     valid_locations = set([l.name for l in world.get_locations()])
