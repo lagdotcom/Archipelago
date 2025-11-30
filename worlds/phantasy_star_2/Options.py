@@ -148,7 +148,7 @@ options_presets = {
         "meseta_multi": 1,
         "xp_multi": 1,
         "encounter_rate": ENCOUNTER_NORMAL,
-        "movement_spped": SPEED_NORMAL,
+        "movement_speed": SPEED_NORMAL,
     },
     "quick neifirst": {
         "goal": GOAL_NEIFIRST,
