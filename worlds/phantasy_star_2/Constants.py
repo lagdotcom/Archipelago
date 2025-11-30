@@ -14,7 +14,12 @@ ram_names = {
     0xC60B: "partyChar2",
     0xC60D: "partyChar3",
     0xC60F: "partyChar4",
+    0xC620: "meseta.1",
+    0xC621: "meseta.2",
+    0xC622: "meseta.3",
+    0xC623: "meseta.4",
     0xC641: "mapIndex",
+    0xC705: "Arima",
     0xC706: "Oputa",
     0xC707: "Zema",
     0xC708: "Kueri",
@@ -214,6 +219,14 @@ rom_version = StrSpan(ROM, 0x18C, 2)
 
 CHECKSUM_FAILED_JUMP = 0x250
 
+MOVE_NEGATIVE = [0x3868, 0x38C8, 0x397C, 0x39B0]
+MOVE_POSITIVE = [0x388E, 0x38EE, 0x3992, 0x39C6]
+MOVE_FRAME_COUNT = 0x38FE
+
+JUMP_FOLLOWING_CHARACTER_SPEED = 0x3B26
+
+STARTING_MESETA_AMOUNT = 0x8A58
+
 TREASURE_CHEST_CONTENT_ARRAY = 0xE8C2
 # 2 bytes each:
 #   if high bit of word set, item id
@@ -224,6 +237,8 @@ JUMP_SET_MUSIK_FLAG = 0xC7F6
 JUMP_SET_LEAF_FLAG = 0xC960
 JUMP_APPLY_XP_MULTIPLIER = 0xF2BE
 JUMP_APPLY_MESETA_MULTIPLIER = 0xF30E
+
+ENCOUNTER_RATE_SHIFT = 0x117DA
 
 ENEMY_DATA_ARRAY = 0x2409A
 # 64 bytes each:
@@ -236,6 +251,7 @@ PATCH_APPLY_MESETA_MULTIPLIER = 0xBF736
 PATCH_SET_MUSIK_FLAG = 0xBF756
 PATCH_SET_RECORDER_FLAG = 0xBF766
 PATCH_SET_LEAF_FLAG = 0xBF776
+PATCH_FOLLOWING_CHARACTER_SPEED = 0xBF788
 
 name_space = StrSpan(ROM, 0xBFE00, 0x200, "utf-8")
 goal_space = IntSpan(ROM, 0xBFDFF, 1)

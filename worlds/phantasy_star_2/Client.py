@@ -140,17 +140,18 @@ class PhSt2Client(BizHawkClient):
         except bizhawk.RequestFailedError:
             pass
 
-    def not_playing(self):
+    def is_playing(self):
         oe = opening_ending_flag.get(self.mem)
         mode = game_mode.get(self.mem)
-        return not (
-            oe == 0
-            and GameMode(mode)
-            in [GameMode.MAP, GameMode.SCENE, GameMode.BATTLE, GameMode.ENDING]
-        )
+        # SCENE is possible here but can cause some bugs I think
+        return oe == 0 and GameMode(mode) in {
+            GameMode.MAP,
+            GameMode.BATTLE,
+            GameMode.ENDING,
+        }
 
     async def location_check(self, ctx: "BizHawkClientContext"):
-        if self.not_playing():
+        if not self.is_playing():
             return
 
         locations_checked = set[int]()
@@ -193,7 +194,7 @@ class PhSt2Client(BizHawkClient):
         self.showing_inventory_full_message = False
 
     async def received_items_check(self, ctx: "BizHawkClientContext"):
-        if self.not_playing():
+        if not self.is_playing():
             return
 
         items_sent = received_item_storage.get(self.mem)
@@ -211,7 +212,7 @@ class PhSt2Client(BizHawkClient):
             await self.mem.write_span(ctx, received_item_storage, items_received)
 
     async def process_item_queue(self, ctx: "BizHawkClientContext"):
-        if self.not_playing():
+        if not self.is_playing():
             return
 
         while len(self.items_queue):
@@ -236,7 +237,7 @@ class PhSt2Client(BizHawkClient):
 
     async def process_pending_mesetas(self, ctx: "BizHawkClientContext"):
         amount = self.mesetas_pending
-        if not amount or self.not_playing():
+        if not amount or not self.is_playing():
             return
 
         old_mesetas = current_money.get(self.mem)

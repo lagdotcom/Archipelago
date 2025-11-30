@@ -16,7 +16,7 @@ from .Items import (
     ItemType,
 )
 from .Locations import all_locations, locations_by_name, location_name_groups
-from .Options import PhSt2Options, DIST_SHUFFLE
+from .Options import PhSt2Options, DIST_SHUFFLE, option_groups, options_presets
 from .Regions import all_regions, regions_by_name
 from .Rom import REV02_UE_HASH, PhSt2ProcedurePatch, get_base_rom_path, write_tokens
 from ..AutoWorld import WebWorld, World
@@ -76,6 +76,10 @@ class PhSt2Settings(settings.Group):
 
 
 class PhSt2Web(WebWorld):
+    game = game_name
+    option_groups = option_groups
+    options_presets = options_presets
+
     tutorials = [
         Tutorial(
             "Multiworld Setup Guide",

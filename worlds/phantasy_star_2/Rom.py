@@ -5,22 +5,38 @@ from worlds.Files import APProcedurePatch, APTokenMixin, APTokenTypes
 
 from .Constants import (
     CHECKSUM_FAILED_JUMP,
+    ENCOUNTER_RATE_SHIFT,
     game_name,
     goal_space,
     JUMP_APPLY_MESETA_MULTIPLIER,
     JUMP_APPLY_XP_MULTIPLIER,
+    JUMP_FOLLOWING_CHARACTER_SPEED,
     JUMP_SET_LEAF_FLAG,
     JUMP_SET_MUSIK_FLAG,
     JUMP_SET_RECORDER_FLAG,
+    MOVE_FRAME_COUNT,
+    MOVE_NEGATIVE,
+    MOVE_POSITIVE,
     name_space,
     PATCH_APPLY_MESETA_MULTIPLIER,
     PATCH_APPLY_XP_MULTIPLIER,
+    PATCH_FOLLOWING_CHARACTER_SPEED,
     PATCH_MULWW,
     PATCH_SET_LEAF_FLAG,
     PATCH_SET_MUSIK_FLAG,
     PATCH_SET_RECORDER_FLAG,
+    STARTING_MESETA_AMOUNT,
 )
 from .Items import items_by_id
+from .Options import (
+    ENCOUNTER_DOUBLE,
+    ENCOUNTER_EIGHTH,
+    ENCOUNTER_HALF,
+    ENCOUNTER_NORMAL,
+    ENCOUNTER_QUARTER,
+    SPEED_NORMAL,
+    SPEED_QUADRUPLE,
+)
 
 
 if TYPE_CHECKING:
@@ -31,6 +47,14 @@ if TYPE_CHECKING:
 REV02_UE_HASH = "0fa38b12cf0ab0163d865600ac731a9a"
 
 AP_ITEM_CODE = 0  # TODO this makes it show up as Garbage
+
+
+encounter_rate_ops = {
+    ENCOUNTER_DOUBLE: bytes([0xE4, 0x49]),  # lsr.w #2,D1w
+    ENCOUNTER_HALF: bytes([0xE8, 0x49]),  # lsr.w #4,D1w
+    ENCOUNTER_QUARTER: bytes([0xEA, 0x49]),  # lsr.w #5,D1w
+    ENCOUNTER_EIGHTH: bytes([0xEC, 0x49]),  # lsr.w #6,D1w
+}
 
 
 class PhSt2ProcedurePatch(APProcedurePatch, APTokenMixin):
@@ -420,6 +444,105 @@ def write_tokens(
                 0x75,
             ]
         ),
+    )
+
+    if world.options.encounter_rate.value != ENCOUNTER_NORMAL:
+        patch.write_token(
+            APTokenTypes.WRITE,
+            ENCOUNTER_RATE_SHIFT,
+            encounter_rate_ops[world.options.encounter_rate.value],
+        )
+
+    if world.options.movement_speed.value != SPEED_NORMAL:
+        pos = world.options.movement_speed.value.to_bytes(2, "big")
+        neg = (-world.options.movement_speed.value).to_bytes(2, "big", signed=True)
+        for addr in MOVE_POSITIVE:
+            patch.write_token(APTokenTypes.WRITE, addr, pos)
+        for addr in MOVE_NEGATIVE:
+            patch.write_token(APTokenTypes.WRITE, addr, neg)
+
+        frames = (16 // world.options.movement_speed.value) - 1
+        patch.write_token(
+            APTokenTypes.WRITE, MOVE_FRAME_COUNT, frames.to_bytes(2, "big")
+        )
+
+        patch.write_token(
+            APTokenTypes.WRITE,
+            JUMP_FOLLOWING_CHARACTER_SPEED,
+            bytes(
+                [
+                    # jmp PATCH_FollowingCharacterSpeed
+                    0x4E,
+                    0xF9,
+                    0x00,
+                    0x0B,
+                    0xF7,
+                    0x88,
+                ]
+            ),
+        )
+
+        lsr_byte = 0xE2
+        if world.options.movement_speed.value == SPEED_QUADRUPLE:
+            lsr_byte = 0xE4
+        patch.write_token(
+            APTokenTypes.WRITE,
+            PATCH_FOLLOWING_CHARACTER_SPEED,
+            bytes(
+                [
+                    # move.l (-0x3c,A0),(0x4,A0)
+                    0x21,
+                    0x68,
+                    0xFF,
+                    0xC4,
+                    0x00,
+                    0x04,
+                    # lea (characterPosTable).l,A2
+                    0x45,
+                    0xF9,
+                    0xFF,
+                    0xFF,
+                    0xDD,
+                    0x00,
+                    # move.w (characterPosTableIndex).l,D0
+                    0x30,
+                    0x39,
+                    0xFF,
+                    0xFF,
+                    0xF7,
+                    0x40,
+                    # moveq #0,D1
+                    0x72,
+                    0x00,
+                    # move.w A0w,D1w
+                    0x32,
+                    0x08,
+                    # subi.w #0xe400,D1w
+                    0x04,
+                    0x41,
+                    0xE4,
+                    0x00,
+                    # lsr.w #SPEED_SHIFT,D1w
+                    lsr_byte,
+                    0x49,
+                    # sub.w D1w,D0w
+                    0x90,
+                    0x41,
+                    # jmp 0x3b3c
+                    0x4E,
+                    0xF9,
+                    0x00,
+                    0x00,
+                    0x3B,
+                    0x3C,
+                ]
+            ),
+        )
+
+    patch.write_token(
+        APTokenTypes.WRITE,
+        STARTING_MESETA_AMOUNT,
+        world.options.starting_meseta.value.to_bytes(4, "big"),
     )
 
     # patch items

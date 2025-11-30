@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from Options import PerGameCommonOptions, Range, Choice
+from Options import OptionGroup, PerGameCommonOptions, Range, Choice
 
 from .Goals import GOAL_MOTHER_BRAIN, GOAL_NEIFIRST
 
@@ -15,6 +15,17 @@ class Goal(Choice):
     default = GOAL_MOTHER_BRAIN
     option_mother_brain = GOAL_MOTHER_BRAIN
     option_neifirst = GOAL_NEIFIRST
+
+
+class StartingMeseta(Range):
+    """
+    How many mesetas you start the game with.
+    """
+
+    display_name = "Starting Meseta"
+    default = 200
+    range_start = 0
+    range_end = 999999
 
 
 class MesetaMultiplier(Range):
@@ -67,10 +78,76 @@ class UsefulItems(Range):
     default = 75
 
 
+ENCOUNTER_DOUBLE = 2
+ENCOUNTER_NORMAL = 3
+ENCOUNTER_HALF = 4
+ENCOUNTER_QUARTER = 5
+ENCOUNTER_EIGHTH = 6
+
+
+class EncounterRate(Choice):
+    display_name = "Encounter Rate"
+    default = ENCOUNTER_HALF
+    option_double = ENCOUNTER_DOUBLE
+    option_normal = ENCOUNTER_NORMAL
+    option_half = ENCOUNTER_HALF
+    option_quarter = ENCOUNTER_QUARTER
+    option_eighth = ENCOUNTER_EIGHTH
+
+
+SPEED_NORMAL = 1
+SPEED_DOUBLE = 2
+SPEED_QUADRUPLE = 4
+
+
+class MovementSpeed(Choice):
+    display_name = "Movement Speed"
+    default = SPEED_DOUBLE
+    option_normal = SPEED_NORMAL
+    option_double = SPEED_DOUBLE
+    option_quadruple = SPEED_QUADRUPLE
+
+
 @dataclass
 class PhSt2Options(PerGameCommonOptions):
     goal: Goal
-    meseta_multi: MesetaMultiplier
-    xp_multi: XPMultiplier
+    starting_meseta: StartingMeseta
     item_distribution: ItemDistribution
     useful_items: UsefulItems
+    meseta_multi: MesetaMultiplier
+    xp_multi: XPMultiplier
+    encounter_rate: EncounterRate
+    movement_speed: MovementSpeed
+
+
+option_groups = [
+    OptionGroup("Gameplay Options", [Goal, StartingMeseta]),
+    OptionGroup("Randomisation", [ItemDistribution, UsefulItems]),
+    OptionGroup(
+        "Quality of Life",
+        [MesetaMultiplier, XPMultiplier, EncounterRate, MovementSpeed],
+    ),
+]
+
+options_presets = {
+    "vanilla": {
+        "goal": GOAL_MOTHER_BRAIN,
+        "starting_meseta": 200,
+        "item_distribution": DIST_SHUFFLE,
+        "useful_items": 0,
+        "meseta_multi": 1,
+        "xp_multi": 1,
+        "encounter_rate": ENCOUNTER_NORMAL,
+        "movement_spped": SPEED_NORMAL,
+    },
+    "quick neifirst": {
+        "goal": GOAL_NEIFIRST,
+        "starting_meseta": 1000,
+        "item_distribution": DIST_SHUFFLE,
+        "useful_items": 0,
+        "meseta_multi": 3,
+        "xp_multi": 5,
+        "encounter_rate": ENCOUNTER_HALF,
+        "movement_speed": SPEED_DOUBLE,
+    },
+}
