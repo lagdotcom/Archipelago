@@ -162,9 +162,8 @@ all_techs = [
     Tech(52, "MEGID", 55, Effect.MEGID, success_rate=255),
 ]
 
+techs_by_id = {tech.id: tech for tech in all_techs}
 techs_by_name = {tech.name: tech for tech in all_techs}
-
-character_names = ["Rolf", "Nei", "Rudolf", "Amy", "Hugh", "Anna", "Kain", "Shir"]
 
 
 learn_lists: dict[str, dict[str, int]] = {
@@ -271,18 +270,22 @@ learn_lists: dict[str, dict[str, int]] = {
     },
 }
 
-total_normal_tech_pool: list[str] = []
+total_normal_tech_pool: list[int] = []
+total_map_tech_pool: list[int] = []
+total_battle_tech_pool: list[int] = []
 total_map_techs: dict[str, int] = {}
 total_battle_techs: dict[str, int] = {}
 for char_name, learn_set in learn_lists.items():
     battle_count = 0
     map_count = 0
     for name in learn_set:
-        total_normal_tech_pool.append(name)
         tech = techs_by_name[name]
+        total_normal_tech_pool.append(tech.id)
         if tech.battle:
             battle_count += 1
+            total_battle_tech_pool.append(tech.id)
         if tech.map:
             map_count += 1
+            total_map_tech_pool.append(tech.id)
     total_battle_techs[char_name] = battle_count
     total_map_techs[char_name] = map_count

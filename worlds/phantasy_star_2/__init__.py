@@ -2,8 +2,9 @@ import logging
 import os
 import settings
 
-from typing import Any, Callable, ClassVar, Iterable, Optional, Sequence, Tuple
+from typing import Any, Callable, ClassVar, Iterable, Optional, Sequence, TextIO, Tuple
 from BaseClasses import CollectionState, Item, Location, MultiWorld, Region, Tutorial
+from .Characters import character_names
 from .Constants import game_name
 from .Data import Area
 from .Goals import get_goal_data
@@ -17,8 +18,10 @@ from .Items import (
 )
 from .Locations import all_locations, locations_by_name, location_name_groups
 from .Options import PhSt2Options, DIST_SHUFFLE, option_groups, options_presets
+from .Rando import get_random_tech_choices
 from .Regions import all_regions, regions_by_name
 from .Rom import REV02_UE_HASH, PhSt2ProcedurePatch, get_base_rom_path, write_tokens
+from .Techs import techs_by_id
 from ..AutoWorld import WebWorld, World
 from .Client import PhSt2Client  # type: ignore
 
@@ -109,6 +112,9 @@ class PhSt2World(World):
 
     location_name_to_id = {data.name: data.id for data in all_locations}
     location_name_groups = location_name_groups
+
+    battle_techs: dict[str, list[int]] = {}
+    map_techs: dict[str, list[int]] = {}
 
     @classmethod
     def stage_assert_generate(cls, multiworld: MultiWorld):
@@ -241,10 +247,15 @@ class PhSt2World(World):
     def get_filler_item_name(self):
         return self.random.choice(filler_item_names)
 
+    def generate_early(self):
+        if self.options.randomise_techs.value:
+            self.map_techs, self.battle_techs = get_random_tech_choices(self.random)
+
     def generate_output(self, output_directory: str):
         patch = PhSt2ProcedurePatch(
             player=self.player, player_name=self.multiworld.player_name[self.player]
         )
+
         write_tokens(self, patch, all_locations)
 
         rom_path = os.path.join(
@@ -252,3 +263,15 @@ class PhSt2World(World):
             f"{self.multiworld.get_out_file_name_base(self.player)}{patch.patch_file_ending}",
         )
         patch.write(rom_path)
+
+    def write_spoiler(self, spoiler_handle: TextIO):
+        if self.battle_techs and self.map_techs:
+            spoiler_handle.write("\n--- Random Tech Assignments\n")
+            for name in character_names:
+                spoiler_handle.write(f"-- {name}\n")
+                spoiler_handle.write(
+                    f"Battle: {', '.join([techs_by_id[id].name for id in self.battle_techs[name]])}\n"
+                )
+                spoiler_handle.write(
+                    f"Map: {', '.join([techs_by_id[id].name for id in self.map_techs[name]])}\n"
+                )

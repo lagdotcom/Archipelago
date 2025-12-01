@@ -3,6 +3,7 @@ from typing import Iterable, TYPE_CHECKING
 
 from worlds.Files import APProcedurePatch, APTokenMixin, APTokenTypes
 
+from .Characters import character_names
 from .Constants import (
     CHECKSUM_FAILED_JUMP,
     ENCOUNTER_RATE_SHIFT,
@@ -37,13 +38,6 @@ from .Options import (
     ENCOUNTER_QUARTER,
     SPEED_NORMAL,
     SPEED_QUADRUPLE,
-)
-from .Techs import (
-    character_names,
-    techs_by_name,
-    total_normal_tech_pool,
-    total_battle_techs,
-    total_map_techs,
 )
 
 
@@ -104,7 +98,9 @@ def get_base_rom_path():
 
 
 def write_tokens(
-    world: "PhSt2World", patch: PhSt2ProcedurePatch, locations: Iterable["LocationData"]
+    world: "PhSt2World",
+    patch: PhSt2ProcedurePatch,
+    locations: Iterable["LocationData"],
 ):
     # write player name
     raw_name = patch.player_name.encode("utf-8") + b"\0"
@@ -553,31 +549,13 @@ def write_tokens(
         world.options.starting_meseta.value.to_bytes(4, "big"),
     )
 
-    if world.options.randomise_techs.value:
-        pool = total_normal_tech_pool[:]
+    if world.map_techs and world.battle_techs:
         offset = TECH_LEARN_TABLES
-        for char_name in character_names:
-            battle_ids: list[int] = []
-            battle_names = set[str]()
-            map_ids: list[int] = []
-            map_names = set[str]()
-            while len(battle_ids) < total_battle_techs[char_name]:
-                tech_name = world.random.choice(pool)
-                tech = techs_by_name[tech_name]
-                if tech.battle:
-                    battle_ids.append(tech.id)
-                    battle_names.add(tech_name)
-                    if tech.map:
-                        map_ids.append(tech.id)
-                        map_names.add(tech_name)
-            while len(map_ids) < total_map_techs[char_name]:
-                tech_name = world.random.choice(pool)
-                tech = techs_by_name[tech_name]
-                if tech.map:
-                    map_ids.append(tech.id)
-                    map_names.add(tech_name)
-            patch.write_token(APTokenTypes.WRITE, offset, bytes(map_ids))
-            patch.write_token(APTokenTypes.WRITE, offset + 16, bytes(battle_ids))
+        for name in character_names:
+            patch.write_token(APTokenTypes.WRITE, offset, bytes(world.map_techs[name]))
+            patch.write_token(
+                APTokenTypes.WRITE, offset + 16, bytes(world.battle_techs[name])
+            )
             offset += 32
 
     # patch items
