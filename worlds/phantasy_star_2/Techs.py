@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import NamedTuple
+from .Data import Tech as T
 
 
 class Effect(Enum):
@@ -46,26 +47,26 @@ class Tech(NamedTuple):
     battle: bool = True
     map: bool = False
     success_rate: int = 229
-    power: int = 0  # btw, 255 actually = 500
+    power: int = 0
 
 
 all_techs = [
-    Tech(1, "FOI", 2, Effect.DAMAGE, power=15),
-    Tech(2, "GIFOI", 6, Effect.DAMAGE, power=40),
-    Tech(3, "NAFOI", 12, Effect.DAMAGE, power=130),
-    Tech(4, "ZAN", 4, Effect.DAMAGE, target=Target.GROUP, power=20),
-    Tech(5, "GIZAN", 7, Effect.DAMAGE, target=Target.GROUP, power=30),
-    Tech(6, "NAZAN", 11, Effect.DAMAGE, target=Target.GROUP, power=100),
-    Tech(7, "GRA", 8, Effect.DAMAGE, target=Target.ALL, power=20),
-    Tech(8, "GIGRA", 12, Effect.DAMAGE, target=Target.ALL, power=40),
-    Tech(9, "NAGRA", 20, Effect.DAMAGE, target=Target.ALL, power=80),
-    Tech(10, "TSU", 6, Effect.DAMAGE, power=30),
-    Tech(11, "GITHU", 13, Effect.DAMAGE, power=80),
-    Tech(12, "NATHU", 20, Effect.DAMAGE, power=150),
-    Tech(13, "SHIFT", 5, Effect.ATTACK_UP, success_rate=255, power=20),
-    Tech(14, "FANBI", 2, Effect.DRAIN, Only.BIO, success_rate=255, power=10),
+    Tech(T.FOI, "FOI", 2, Effect.DAMAGE, power=15),
+    Tech(T.GIFOI, "GIFOI", 6, Effect.DAMAGE, power=40),
+    Tech(T.NAFOI, "NAFOI", 12, Effect.DAMAGE, power=130),
+    Tech(T.ZAN, "ZAN", 4, Effect.DAMAGE, target=Target.GROUP, power=20),
+    Tech(T.GIZAN, "GIZAN", 7, Effect.DAMAGE, target=Target.GROUP, power=30),
+    Tech(T.NAZAN, "NAZAN", 11, Effect.DAMAGE, target=Target.GROUP, power=100),
+    Tech(T.GRA, "GRA", 8, Effect.DAMAGE, target=Target.ALL, power=20),
+    Tech(T.GIGRA, "GIGRA", 12, Effect.DAMAGE, target=Target.ALL, power=40),
+    Tech(T.NAGRA, "NAGRA", 20, Effect.DAMAGE, target=Target.ALL, power=80),
+    Tech(T.TSU, "TSU", 6, Effect.DAMAGE, power=30),
+    Tech(T.GITHU, "GITHU", 13, Effect.DAMAGE, power=80),
+    Tech(T.NATHU, "NATHU", 20, Effect.DAMAGE, power=150),
+    Tech(T.SHIFT, "SHIFT", 5, Effect.ATTACK_UP, success_rate=255, power=20),
+    Tech(T.FANBI, "FANBI", 2, Effect.DRAIN, Only.BIO, success_rate=255, power=10),
     Tech(
-        15,
+        T.EIJIA,
         "EIJIA",
         4,
         Effect.DAMAGE,
@@ -74,43 +75,45 @@ all_techs = [
         success_rate=255,
         power=23,
     ),
-    Tech(16, "BROSE", 8, Effect.KILL, Only.MECH, success_rate=127, power=255),
-    Tech(17, "CONTE", 6, Effect.FREEZE, Only.MECH, success_rate=255),
-    Tech(18, "GAJ", 1, Effect.DAMAGE, Only.MECH, success_rate=255, power=20),
-    Tech(19, "GIGAJ", 5, Effect.DAMAGE, Only.MECH, power=60),
-    Tech(20, "NAGAJ", 15, Effect.DAMAGE, Only.MECH, power=150),
-    Tech(21, "SAG", 3, Effect.DAMAGE, Only.MECH, Target.ALL, power=20),
-    Tech(22, "GISAG", 15, Effect.DAMAGE, Only.MECH, Target.ALL, power=60),
-    Tech(23, "NASAG", 27, Effect.DAMAGE, Only.MECH, Target.ALL, power=150),
-    Tech(24, "GEN", 1, Effect.DAMAGE, Only.BIO, power=20),
-    Tech(25, "SAGEN", 3, Effect.DAMAGE, Only.BIO, Target.ALL, power=20),
-    Tech(26, "VOL", 8, Effect.KILL, Only.BIO, success_rate=153, power=255),
+    Tech(T.BROSE, "BROSE", 8, Effect.KILL, Only.MECH, success_rate=127, power=500),
+    Tech(T.CONTE, "CONTE", 6, Effect.FREEZE, Only.MECH, success_rate=255),
+    Tech(T.GAJ, "GAJ", 1, Effect.DAMAGE, Only.MECH, success_rate=255, power=20),
+    Tech(T.GIGAJ, "GIGAJ", 5, Effect.DAMAGE, Only.MECH, power=60),
+    Tech(T.NAGAJ, "NAGAJ", 15, Effect.DAMAGE, Only.MECH, power=150),
+    Tech(T.SAG, "SAG", 3, Effect.DAMAGE, Only.MECH, Target.ALL, power=20),
+    Tech(T.GISAG, "GISAG", 15, Effect.DAMAGE, Only.MECH, Target.ALL, power=60),
+    Tech(T.NASAG, "NASAG", 27, Effect.DAMAGE, Only.MECH, Target.ALL, power=150),
+    Tech(T.GEN, "GEN", 1, Effect.DAMAGE, Only.BIO, power=20),
+    Tech(T.SAGEN, "SAGEN", 3, Effect.DAMAGE, Only.BIO, Target.ALL, power=20),
+    Tech(T.VOL, "VOL", 8, Effect.KILL, Only.BIO, success_rate=153, power=500),
     Tech(
-        27,
+        T.SAVOL,
         "SAVOL",
         16,
         Effect.KILL,
         Only.MECH,
         Target.GROUP,
         success_rate=178,
-        power=255,
+        power=500,
     ),
-    Tech(28, "SHIZA", 6, Effect.FREEZE, Only.BIO, success_rate=255),
-    Tech(29, "DORAN", 2, Effect.CONFUSE, Only.BIO, success_rate=204),
-    Tech(30, "RIMIT", 3, Effect.PARALYSIS, Only.BIO, success_rate=127),
-    Tech(31, "SHINB", 4, Effect.TERRIFY, Only.BIO, success_rate=255),
-    Tech(32, "FORSA", 1, Effect.CONFUSE, Only.MECH, success_rate=127),
-    Tech(33, "RIMET", 3, Effect.PARALYSIS, Only.MECH, success_rate=102),
-    Tech(34, "SHU", 3, Effect.DEFENCE_UP, success_rate=255),
-    Tech(35, "SASHU", 8, Effect.DEFENCE_UP, target=Target.ALL, success_rate=255),
-    Tech(36, "DEBAN", 4, Effect.ACCURACY_DOWN, target=Target.ALL, success_rate=255),
-    Tech(37, "NER", 2, Effect.AGILITY_UP, success_rate=255),
-    Tech(38, "SANER", 6, Effect.AGILITY_UP, target=Target.ALL, success_rate=255),
-    Tech(39, "RES", 3, Effect.HEAL, map=True, success_rate=255, power=20),
-    Tech(40, "GIRES", 7, Effect.HEAL, map=True, success_rate=255, power=60),
-    Tech(41, "NARES", 13, Effect.HEAL, map=True, success_rate=255, power=255),
+    Tech(T.SHIZA, "SHIZA", 6, Effect.FREEZE, Only.BIO, success_rate=255),
+    Tech(T.DORAN, "DORAN", 2, Effect.CONFUSE, Only.BIO, success_rate=204),
+    Tech(T.RIMIT, "RIMIT", 3, Effect.PARALYSIS, Only.BIO, success_rate=127),
+    Tech(T.SHINB, "SHINB", 4, Effect.TERRIFY, Only.BIO, success_rate=255),
+    Tech(T.FORSA, "FORSA", 1, Effect.CONFUSE, Only.MECH, success_rate=127),
+    Tech(T.RIMET, "RIMET", 3, Effect.PARALYSIS, Only.MECH, success_rate=102),
+    Tech(T.SHU, "SHU", 3, Effect.DEFENCE_UP, success_rate=255),
+    Tech(T.SASHU, "SASHU", 8, Effect.DEFENCE_UP, target=Target.ALL, success_rate=255),
     Tech(
-        42,
+        T.DEBAN, "DEBAN", 4, Effect.ACCURACY_DOWN, target=Target.ALL, success_rate=255
+    ),
+    Tech(T.NER, "NER", 2, Effect.AGILITY_UP, success_rate=255),
+    Tech(T.SANER, "SANER", 6, Effect.AGILITY_UP, target=Target.ALL, success_rate=255),
+    Tech(T.RES, "RES", 3, Effect.HEAL, map=True, success_rate=255, power=20),
+    Tech(T.GIRES, "GIRES", 7, Effect.HEAL, map=True, success_rate=255, power=60),
+    Tech(T.NARES, "NARES", 13, Effect.HEAL, map=True, success_rate=255, power=500),
+    Tech(
+        T.SAR,
         "SAR",
         13,
         Effect.HEAL,
@@ -120,7 +123,7 @@ all_techs = [
         power=20,
     ),
     Tech(
-        43,
+        T.GISAR,
         "GISAR",
         29,
         Effect.HEAL,
@@ -130,36 +133,50 @@ all_techs = [
         power=60,
     ),
     Tech(
-        44,
+        T.NASAR,
         "NASAR",
         53,
         Effect.HEAL,
         target=Target.ALL,
         map=True,
         success_rate=255,
-        power=255,
+        power=500,
     ),
-    Tech(45, "SAK", 1, Effect.SACRIFICE, map=True, success_rate=255, power=255),
+    Tech(T.SAK, "SAK", 1, Effect.SACRIFICE, map=True, success_rate=255, power=500),
     Tech(
-        46,
+        T.NASAK,
         "NASAK",
         1,
         Effect.SACRIFICE,
         target=Target.ALL,
         map=True,
         success_rate=255,
-        power=255,
+        power=500,
     ),
-    Tech(47, "ANTI", 2, Effect.ANTIDOTE, battle=False, map=True, success_rate=255),
-    Tech(48, "REVER", 30, Effect.REVIVIFY, battle=False, map=True, success_rate=255),
+    Tech(T.ANTI, "ANTI", 2, Effect.ANTIDOTE, battle=False, map=True, success_rate=255),
     Tech(
-        49, "RYUKA", 8, Effect.TOWN_TELEPORT, battle=False, map=True, success_rate=255
+        T.REVER, "REVER", 30, Effect.REVIVIFY, battle=False, map=True, success_rate=255
     ),
     Tech(
-        50, "HINAS", 8, Effect.LEAVE_DUNGEON, battle=False, map=True, success_rate=255
+        T.RYUKA,
+        "RYUKA",
+        8,
+        Effect.TOWN_TELEPORT,
+        battle=False,
+        map=True,
+        success_rate=255,
     ),
-    Tech(51, "MUSIK", 3, Effect.MUSIK, success_rate=255),
-    Tech(52, "MEGID", 55, Effect.MEGID, success_rate=255),
+    Tech(
+        T.HINAS,
+        "HINAS",
+        8,
+        Effect.LEAVE_DUNGEON,
+        battle=False,
+        map=True,
+        success_rate=255,
+    ),
+    Tech(T.MUSIK, "MUSIK", 3, Effect.MUSIK, success_rate=255),
+    Tech(T.MEGID, "MEGID", 55, Effect.MEGID, success_rate=255),
 ]
 
 techs_by_id = {tech.id: tech for tech in all_techs}
@@ -289,3 +306,66 @@ for char_name, learn_set in learn_lists.items():
             total_map_tech_pool.append(tech.id)
     total_battle_techs[char_name] = battle_count
     total_map_techs[char_name] = map_count
+
+tech_strengths: dict[int, int] = {
+    # Tier 1
+    T.RES: 10_00,
+    T.FOI: 10_01,
+    T.GAJ: 10_02,
+    T.GEN: 10_03,
+    T.FANBI: 10_04,
+    T.RIMET: 10_05,
+    T.RIMIT: 10_06,
+    # Tier 1.5
+    T.SAR: 15_00,
+    T.ANTI: 15_01,
+    T.SAK: 15_02,
+    T.TSU: 15_03,
+    T.EIJIA: 15_04,
+    T.SHINB: 15_05,
+    T.HINAS: 15_06,
+    # Tier 2
+    T.GIRES: 20_00,
+    T.GIGAJ: 20_01,
+    T.ZAN: 20_02,
+    T.SAG: 20_03,
+    T.SAGEN: 20_04,
+    T.GIFOI: 20_05,
+    T.FORSA: 20_06,
+    T.DORAN: 20_07,
+    T.RYUKA: 20_08,
+    T.SHU: 20_09,
+    T.NER: 20_10,
+    # Tier 2.5
+    T.GISAR: 25_00,
+    T.GRA: 25_01,
+    T.GITHU: 25_02,
+    T.SHIFT: 25_03,
+    # Tier 3
+    T.GIZAN: 30_00,
+    T.NAFOI: 30_01,
+    T.NAGAJ: 30_02,
+    T.GIGRA: 30_03,
+    T.GISAG: 30_04,
+    T.CONTE: 30_05,
+    T.SHIZA: 30_06,
+    # Tier 3.5
+    T.NASAK: 35_00,
+    T.NATHU: 35_01,
+    # Tier 4
+    T.REVER: 40_00,
+    T.NARES: 40_01,
+    T.BROSE: 40_02,
+    T.VOL: 40_03,
+    T.SASHU: 40_04,
+    T.SANER: 40_05,
+    T.DEBAN: 40_06,
+    # Tier 4.5
+    T.NAZAN: 45_00,
+    T.NASAG: 45_01,
+    T.NAGRA: 45_02,
+    T.SAVOL: 45_03,
+    # Tier 5
+    T.NASAR: 50_00,
+    T.MEGID: 50_01,
+}

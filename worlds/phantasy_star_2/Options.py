@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from Options import Choice, OptionGroup, PerGameCommonOptions, Range, Toggle
+from Options import Choice, OptionGroup, PerGameCommonOptions, Range
 
 from .Goals import GOAL_MOTHER_BRAIN, GOAL_NEIFIRST
 
@@ -78,12 +78,23 @@ class UsefulItems(Range):
     default = 75
 
 
-class RandomiseTechs(Toggle):
+TECHS_VANILLA = 0
+TECHS_SHUFFLE = 1
+TECHS_SENSIBLE_SHUFFLE = 2
+
+
+class RandomiseTechs(Choice):
     """
-    Randomise the techs that each character learns. They will still learn them at the same levels.
+    Vanilla: Characters learn techs as normal.
+    Shuffle: Characters learn random techs chosen from the normal pool.
+    Sensible Shuffle: As Shuffle, but you will learn weaker techs earlier than more powerful ones.
     """
 
     display_name = "Randomise Techs"
+    default = TECHS_VANILLA
+    option_vanilla = TECHS_VANILLA
+    option_shuffle = TECHS_SHUFFLE
+    option_sensible_shuffle = TECHS_SENSIBLE_SHUFFLE
 
 
 ENCOUNTER_DOUBLE = 2
@@ -144,7 +155,7 @@ options_presets = {
         "starting_meseta": 200,
         "item_distribution": DIST_SHUFFLE,
         "useful_items": 0,
-        "randomise_techs": 0,
+        "randomise_techs": TECHS_VANILLA,
         "meseta_multi": 1,
         "xp_multi": 1,
         "encounter_rate": ENCOUNTER_NORMAL,
@@ -155,7 +166,7 @@ options_presets = {
         "starting_meseta": 1000,
         "item_distribution": DIST_SHUFFLE,
         "useful_items": 0,
-        "randomise_techs": 0,
+        "randomise_techs": TECHS_SENSIBLE_SHUFFLE,
         "meseta_multi": 3,
         "xp_multi": 5,
         "encounter_rate": ENCOUNTER_HALF,

@@ -17,7 +17,14 @@ from .Items import (
     ItemType,
 )
 from .Locations import all_locations, locations_by_name, location_name_groups
-from .Options import PhSt2Options, DIST_SHUFFLE, option_groups, options_presets
+from .Options import (
+    PhSt2Options,
+    DIST_SHUFFLE,
+    TECHS_VANILLA,
+    TECHS_SENSIBLE_SHUFFLE,
+    option_groups,
+    options_presets,
+)
 from .Rando import get_random_tech_choices
 from .Regions import all_regions, regions_by_name
 from .Rom import REV02_UE_HASH, PhSt2ProcedurePatch, get_base_rom_path, write_tokens
@@ -248,8 +255,11 @@ class PhSt2World(World):
         return self.random.choice(filler_item_names)
 
     def generate_early(self):
-        if self.options.randomise_techs.value:
-            self.map_techs, self.battle_techs = get_random_tech_choices(self.random)
+        if self.options.randomise_techs.value != TECHS_VANILLA:
+            self.map_techs, self.battle_techs = get_random_tech_choices(
+                self.random,
+                self.options.randomise_techs.value == TECHS_SENSIBLE_SHUFFLE,
+            )
 
     def generate_output(self, output_directory: str):
         patch = PhSt2ProcedurePatch(
