@@ -10,10 +10,10 @@ from .laglib import (
 from .Constants import (
     TREASURE_CHEST_CONTENT_ARRAY,
     chest_flags,
-    GameMode,
     game_mode,
 )
 from .Data import Area as A, Item as I
+from .Enums import GameMode
 from .Items import ItemType
 
 

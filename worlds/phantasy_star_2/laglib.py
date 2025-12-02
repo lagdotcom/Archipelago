@@ -1,5 +1,5 @@
 import logging
-from typing import TYPE_CHECKING, Callable, Iterable, Mapping, NamedTuple, Sequence
+from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, NamedTuple, Sequence
 
 from BaseClasses import CollectionState
 import worlds._bizhawk as bizhawk
@@ -65,6 +65,10 @@ class MemoryManager:
         self.spans: list[MemorySpan] = []
         self.blocks: list[MemoryBlock] = []
         self.names = names
+        self.translations: dict[int, Callable[[int], Any]] = {}
+
+    def translate(self, address: int, translator: Callable[[int], Any]):
+        self.translations[address] = translator
 
     def request(self, ctx: "BizHawkClientContext", spans: Iterable[MemorySpan]):
         return bizhawk.read(
@@ -132,8 +136,15 @@ class MemoryManager:
                     name = self.names[addr]
                 else:
                     name = "?"
+                if addr in self.translations:
+                    old_val = self.translations[addr](o)
+                    new_val = self.translations[addr](n)
+                else:
+                    old_val = "%02x" % o
+                    new_val = "%02x" % n
                 logger.debug(
-                    "%04x %s: %02x -> %02x (%02x flipped)" % (addr, name, o, n, o ^ n)
+                    "%04x %s: %s -> %s (%02x flipped)"
+                    % (addr, name, old_val, new_val, o ^ n)
                 )
 
 

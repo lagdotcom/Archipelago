@@ -11,6 +11,8 @@ from .Constants import (
     goal_space,
     JUMP_APPLY_MESETA_MULTIPLIER,
     JUMP_APPLY_XP_MULTIPLIER,
+    JUMP_FIX_RECORDER_LOOP_CT_OUTSIDE,
+    JUMP_FIX_RECORDER_LOOP_GOVERNOR,
     JUMP_FOLLOWING_CHARACTER_SPEED,
     JUMP_SET_LEAF_FLAG,
     JUMP_SET_MUSIK_FLAG,
@@ -21,6 +23,8 @@ from .Constants import (
     name_space,
     PATCH_APPLY_MESETA_MULTIPLIER,
     PATCH_APPLY_XP_MULTIPLIER,
+    PATCH_FIX_RECORDER_LOOP_CT_OUTSIDE,
+    PATCH_FIX_RECORDER_LOOP_GOVERNOR,
     PATCH_FOLLOWING_CHARACTER_SPEED,
     PATCH_MULWW,
     PATCH_SET_LEAF_FLAG,
@@ -111,6 +115,122 @@ def write_tokens(
     # write goal number
     patch.write_token(
         APTokenTypes.WRITE, goal_space.address, bytes([world.options.goal])
+    )
+
+    # apply Recorder conversation loop fix
+    patch.write_token(
+        APTokenTypes.WRITE,
+        JUMP_FIX_RECORDER_LOOP_CT_OUTSIDE,
+        bytes(
+            [
+                # jmp PATCH_FixRecorderLoop_CTOutside
+                0x4E,
+                0xF9,
+                0x00,
+                0x0B,
+                0xF7,
+                0xAC,
+            ]
+        ),
+    )
+    patch.write_token(
+        APTokenTypes.WRITE,
+        PATCH_FIX_RECORDER_LOOP_CT_OUTSIDE,
+        bytes(
+            [
+                # tst.w (cutsceneFlag).l
+                0x4A,
+                0x79,
+                0xFF,
+                0xFF,
+                0xF7,
+                0x50,
+                # beq.b +6
+                0x67,
+                0x06,
+                # jmp 0xc086.l
+                0x4E,
+                0xF9,
+                0x00,
+                0x00,
+                0xC0,
+                0x86,
+                # moveq #RECORDER,D2
+                0x74,
+                0x0A,
+                # jsr FindInventoryItem.l
+                0x4E,
+                0xB9,
+                0x00,
+                0x00,
+                0xD0,
+                0x2E,
+                # jmp 0xc078.l
+                0x4E,
+                0xF9,
+                0x00,
+                0x00,
+                0xC0,
+                0x78,
+            ]
+        ),
+    )
+    patch.write_token(
+        APTokenTypes.WRITE,
+        JUMP_FIX_RECORDER_LOOP_GOVERNOR,
+        bytes(
+            [
+                # jmp PATCH_FixRecorderLoop_Governor
+                0x4E,
+                0xF9,
+                0x00,
+                0x0B,
+                0xF7,
+                0xC8,
+            ]
+        ),
+    )
+    patch.write_token(
+        APTokenTypes.WRITE,
+        PATCH_FIX_RECORDER_LOOP_GOVERNOR,
+        bytes(
+            [
+                # tst.w (cutsceneFlag).l
+                0x4A,
+                0x79,
+                0xFF,
+                0xFF,
+                0xF7,
+                0x50,
+                # beq.b +6
+                0x67,
+                0x06,
+                # jmp 0xc9d8.l
+                0x4E,
+                0xF9,
+                0x00,
+                0x00,
+                0xC9,
+                0xD8,
+                # moveq #RECORDER,D2
+                0x74,
+                0x0A,
+                # jsr FindInventoryItem.l
+                0x4E,
+                0xB9,
+                0x00,
+                0x00,
+                0xD0,
+                0x2E,
+                # jmp 0xc9c4.l
+                0x4E,
+                0xF9,
+                0x00,
+                0x00,
+                0xC9,
+                0xC4,
+            ]
+        ),
     )
 
     # apply specific multipliers

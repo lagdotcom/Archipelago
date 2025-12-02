@@ -1,5 +1,3 @@
-from enum import Enum
-
 from .laglib import IntSpan, StrSpan, genesis_rom as ROM, genesis_ram as RAM
 
 game_name = "Phantasy Star II"
@@ -7,6 +5,23 @@ game_name = "Phantasy Star II"
 # RAM addresses
 
 ram_names = {
+    0xC027: "Rolf.itemCount",
+    0xC028: "Rolf.item[0]",
+    0xC029: "Rolf.item[1]",
+    0xC02A: "Rolf.item[2]",
+    0xC02B: "Rolf.item[3]",
+    0xC02C: "Rolf.item[4]",
+    0xC02D: "Rolf.item[5]",
+    0xC02E: "Rolf.item[6]",
+    0xC02F: "Rolf.item[7]",
+    0xC030: "Rolf.item[8]",
+    0xC031: "Rolf.item[9]",
+    0xC032: "Rolf.item[10]",
+    0xC033: "Rolf.item[11]",
+    0xC034: "Rolf.item[12]",
+    0xC035: "Rolf.item[13]",
+    0xC036: "Rolf.item[14]",
+    0xC037: "Rolf.item[15]",
     0xC601: "partyNum",
     0xC605: "partyJoined",
     0xC607: "partyJoinNext",
@@ -19,6 +34,7 @@ ram_names = {
     0xC622: "meseta.3",
     0xC623: "meseta.4",
     0xC641: "mapIndex",
+    0xC704: "Paseo",
     0xC705: "Arima",
     0xC706: "Oputa",
     0xC707: "Zema",
@@ -157,6 +173,8 @@ ram_names = {
     0xC7DC: "GuaronCrystCape",
     0xC7DD: "NeiArmor",
     0xC7FF: "apItemCount",
+    0xCD00: "scriptId",
+    0xCD01: "textId",
     0xDE55: "windowIndex",
     0xDE57: "windowRoutine1",
     0xDE59: "windowRoutine2",
@@ -167,6 +185,8 @@ ram_names = {
     0xDE71: "interactionRoutine1",
     0xDE73: "interactionRoutine2",
     0xF600: "gameMode",
+    0xF751: "cutsceneFlag",
+    0xF753: "cutsceneIndex",
     0xFFF0: "openingEndingFlag",
 }
 
@@ -202,16 +222,6 @@ party_inventories = [
 ]
 
 
-class GameMode(Enum):
-    SEGA = 0
-    TITLE = 4
-    ENDING = 8
-    MAP = 12
-    SCENE = 16
-    BATTLE = 20
-    INTRO = 24
-
-
 # ROM addresses
 
 rom_international_name = StrSpan(ROM, 0x150, 32)
@@ -226,6 +236,9 @@ MOVE_FRAME_COUNT = 0x38FE
 JUMP_FOLLOWING_CHARACTER_SPEED = 0x3B26
 
 STARTING_MESETA_AMOUNT = 0x8A58
+
+JUMP_FIX_RECORDER_LOOP_CT_OUTSIDE = 0xC072
+JUMP_FIX_RECORDER_LOOP_GOVERNOR = 0xC9BE
 
 TREASURE_CHEST_CONTENT_ARRAY = 0xE8C2
 # 2 bytes each:
@@ -254,6 +267,8 @@ PATCH_SET_MUSIK_FLAG = 0xBF756
 PATCH_SET_RECORDER_FLAG = 0xBF766
 PATCH_SET_LEAF_FLAG = 0xBF776
 PATCH_FOLLOWING_CHARACTER_SPEED = 0xBF788
+PATCH_FIX_RECORDER_LOOP_CT_OUTSIDE = 0xBF7AC
+PATCH_FIX_RECORDER_LOOP_GOVERNOR = 0xBF7C8
 
 name_space = StrSpan(ROM, 0xBFE00, 0x200, "utf-8")
 goal_space = IntSpan(ROM, 0xBFDFF, 1)

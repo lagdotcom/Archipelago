@@ -12,7 +12,6 @@ if TYPE_CHECKING:
 
 from .laglib import MemoryManager, genesis_ram as RAM
 from .Constants import (
-    GameMode,
     chest_flags,
     current_money,
     game_mode,
@@ -28,7 +27,13 @@ from .Constants import (
     received_item_storage,
     rom_international_name,
     rom_version,
+    # map_index,
+    # script_status,
+    # window_status,
+    # interaction_status,
+    # scene_status,
 )
+from .Enums import GameMode  # , MapID, SceneID, ScriptID, WinID
 from .Goals import GoalData, get_goal_data
 from .Items import items_by_id
 from .Locations import all_locations, locations_by_id
@@ -80,10 +85,20 @@ class PhSt2Client(BizHawkClient):
                 party_size,
                 quest_flags,
                 received_item_storage,
+                # map_index,
+                # script_status,
+                # window_status,
+                # interaction_status,
+                # scene_status,
             ]
             + party_composition
             + party_inventories
         )
+        self.mem.translate(0xF600, GameMode)
+        # self.mem.translate(0xC641, MapID)
+        # self.mem.translate(0xCD00, ScriptID)
+        # self.mem.translate(0xDE55, WinID)
+        # self.mem.translate(0xF753, SceneID)
 
     async def validate_rom(self, ctx: "BizHawkClientContext"):
         goal_num = -1
