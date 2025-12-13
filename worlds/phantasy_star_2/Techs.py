@@ -316,6 +316,7 @@ tech_strengths: dict[int, int] = {
     T.FANBI: 10_04,
     T.RIMET: 10_05,
     T.RIMIT: 10_06,
+    T.SHU: 10_07,
     # Tier 1.5
     T.SAR: 15_00,
     T.ANTI: 15_01,
@@ -334,8 +335,8 @@ tech_strengths: dict[int, int] = {
     T.FORSA: 20_06,
     T.DORAN: 20_07,
     T.RYUKA: 20_08,
-    T.SHU: 20_09,
     T.NER: 20_10,
+    T.SASHU: 20_11,
     # Tier 2.5
     T.GISAR: 25_00,
     T.GRA: 25_01,
@@ -357,7 +358,6 @@ tech_strengths: dict[int, int] = {
     T.NARES: 40_01,
     T.BROSE: 40_02,
     T.VOL: 40_03,
-    T.SASHU: 40_04,
     T.SANER: 40_05,
     T.DEBAN: 40_06,
     # Tier 4.5

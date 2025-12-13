@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import NamedTuple, Optional
 
 from .laglib import (
@@ -32,8 +33,14 @@ class FlagCheck(NamedTuple):
 equals1: Predicate[int] = lambda v: v == 1
 
 
+class LocationType(Enum):
+    CHEST = 0
+    FLAG = 1
+    GRANTED_ITEM = 2
+
+
 class LocationData:
-    type: str
+    type: LocationType
     id: int
     region_name: str
     name: str
@@ -46,7 +53,7 @@ class LocationData:
 
     def __init__(
         self,
-        type: str,
+        type: LocationType,
         id: int,
         region_name: str,
         name: str,
@@ -81,12 +88,12 @@ class LocationData:
 def chest(id: int, region_name: str, name: str, chest_index: int, vanilla_item: str):
     return (
         LocationData(
-            "chest",
+            LocationType.CHEST,
             id,
             region_name,
             name,
             vanilla_item,
-            {ItemType.GARBAGE, ItemType.ITEM, ItemType.MONEY},
+            {ItemType.GARBAGE, ItemType.ITEM, ItemType.MONEY, ItemType.FLAG_AS_ITEM},
         )
         .at(IntSpan(ROM, TREASURE_CHEST_CONTENT_ARRAY + chest_index * 2, 2))
         .flag(chest_flags.address + chest_index)
@@ -102,7 +109,7 @@ def flag(
     predicate: Predicate[int] = equals1,
 ):
     return LocationData(
-        "flag", id, region_name, name, vanilla_item, {ItemType.FLAG}
+        LocationType.FLAG, id, region_name, name, vanilla_item, {ItemType.FLAG}
     ).flag(ram_location, predicate)
 
 
@@ -116,7 +123,14 @@ def granted(
     predicate: Predicate[int] = equals1,
 ):
     return (
-        LocationData("granted", id, region_name, name, vanilla_item, {ItemType.ITEM})
+        LocationData(
+            LocationType.GRANTED_ITEM,
+            id,
+            region_name,
+            name,
+            vanilla_item,
+            {ItemType.ITEM, ItemType.FLAG_AS_ITEM},
+        )
         .at(IntSpan(ROM, rom_address, 1))
         .flag(ram_address, predicate)
     )
@@ -124,15 +138,15 @@ def granted(
 
 skure_locations = [
     chest(452_00_01, A.Dezolis, "Skure - 15000 meseta", 0x1, I.Meseta(15000)),
-    chest(452_00_02, A.Dezolis, "Skure - MogicCap", 0x2, I.MogicCap),
+    chest(452_00_02, A.Dezolis, "Skure - Mogic Cap", 0x2, I.MogicCap),
     chest(452_00_03, A.Dezolis, "Skure - 18000 meseta", 0x3, I.Meseta(18000)),
-    chest(452_00_04, A.Dezolis, "Skure - MagicCap", 0x4, I.MagicCap),
+    chest(452_00_04, A.Dezolis, "Skure - Magic Cap", 0x4, I.MagicCap),
     chest(452_00_05, A.Dezolis, "Skure - 7800 meseta", 0x5, I.Meseta(7800)),
     chest(452_00_06, A.Dezolis, "Skure - LaconChest", 0x6, I.LaconChest),
     chest(452_00_07, A.Dezolis, "Skure - 5600 meseta", 0x7, I.Meseta(5600)),
     chest(452_00_08, A.Dezolis, "Skure - GardaBoots", 0x8, I.GardaBoots),
     chest(452_00_09, A.Dezolis, "Skure - 8600 meseta", 0x9, I.Meseta(8600)),
-    chest(452_00_10, A.Dezolis, "Skure - MagicCap 2", 0xA, I.MagicCap),
+    chest(452_00_10, A.Dezolis, "Skure - Magic Cap 2", 0xA, I.MagicCap),
     chest(452_00_11, A.Dezolis, "Skure - 12000 meseta", 0xB, I.Meseta(12000)),
     chest(452_00_12, A.Dezolis, "Skure - 6400 meseta", 0xC, I.Meseta(6400)),
 ]
@@ -170,7 +184,7 @@ shure_locations = [
     chest(452_00_21, A.Shure, "Shure - Dimate", 0x15, I.Dimate),
     chest(452_00_22, A.Shure, "Shure - Headgear", 0x16, I.Headgear),
     chest(452_00_23, A.Shure, "Shure - 200 meseta", 0x17, I.Meseta(200)),
-    chest(452_00_24, A.Shure, "Shure - SilRibbon", 0x18, I.SilRibbon),
+    chest(452_00_24, A.Shure, "Shure - Sil Ribbon", 0x18, I.SilRibbon),
     granted(
         452_01_01,
         A.Shure,
@@ -199,12 +213,17 @@ nido_locations = [
 roron_locations = [
     chest(452_00_30, A.Roron, "Roron - Garbage", 0x1E, I.Garbage),
     chest(452_00_31, A.Roron, "Roron - Garbage 2", 0x1F, I.Garbage),
-    chest(452_00_32, A.Roron, "Roron - CeramBar", 0x20, I.CeramBar),
+    chest(452_00_32, A.Roron, "Roron - Ceram Bar", 0x20, I.CeramBar),
     chest(452_00_33, A.Roron, "Roron - Garbage 3", 0x21, I.Garbage),
     chest(452_00_34, A.Roron, "Roron - Cannon", 0x22, I.Cannon),
     chest(452_00_35, A.Roron, "Roron - Garbage 4", 0x23, I.Garbage),
-    flag(452_02_00, A.Roron, "Roron - Jet Scooter Guy", I.JetScooterFlag, 0xC716).fix(
-        I.JetScooterFlag
+    granted(
+        452_02_00,
+        A.Roron,
+        "Roron - Jet Scooter Guy",
+        I.JetScooterFlag,
+        0xBF857,
+        0xC753,
     ),
 ]
 
@@ -213,16 +232,16 @@ yellow_dam_locations = [
     chest(452_00_37, A.YellowDam, "Yellow Dam - Crystanish", 0x25, I.Crystanish),
     chest(452_00_38, A.YellowDam, "Yellow Dam - CrystCape", 0x26, I.CrystCape),
     chest(452_00_39, A.YellowDam, "Yellow Dam - CrystChest", 0x27, I.CrystChest),
-    chest(452_00_40, A.YellowDam, "Yellow Dam - AmberRobe", 0x28, I.AmberRobe),
+    chest(452_00_40, A.YellowDam, "Yellow Dam - Amber Robe", 0x28, I.AmberRobe),
     flag(452_02_01, A.YellowDam, "Yellow Dam - Console", I.YellowDamFlag, 0xC731).fix(
         I.YellowDamFlag
     ),
 ]
 
 red_dam_locations = [
-    chest(452_00_41, A.RedDam, "Red Dam - SwdOfAnger", 0x29, I.SwdOfAng),
-    chest(452_00_42, A.RedDam, "Red Dam - FireSlshr", 0x2A, I.FireSlshr),
-    chest(452_00_43, A.RedDam, "Red Dam - FireStaff", 0x2B, I.FireStaff),
+    chest(452_00_41, A.RedDam, "Red Dam - Swd of Ang", 0x29, I.SwdOfAng),
+    chest(452_00_42, A.RedDam, "Red Dam - Fire Slshr", 0x2A, I.FireSlshr),
+    chest(452_00_43, A.RedDam, "Red Dam - Fire Staff", 0x2B, I.FireStaff),
     flag(452_02_02, A.RedDam, "Red Dam - Console", I.RedDamFlag, 0xC733).fix(
         I.RedDamFlag
     ),
@@ -231,37 +250,53 @@ red_dam_locations = [
 blue_dam_locations = [
     chest(452_00_44, A.BlueDam, "Blue Dam - Antidote", 0x2C, I.Antidote),
     chest(452_00_45, A.BlueDam, "Blue Dam - CresceGear", 0x2D, I.CresceGear),
-    chest(452_00_46, A.BlueDam, "Blue Dam - SnowCrown", 0x2E, I.SnowCrown),
-    chest(452_00_47, A.BlueDam, "Blue Dam - StarMist", 0x2F, I.StarMist),
-    chest(452_00_48, A.BlueDam, "Blue Dam - WindScarf", 0x30, I.WindScarf),
+    chest(452_00_46, A.BlueDam, "Blue Dam - Snow Crown", 0x2E, I.SnowCrown),
+    chest(452_00_47, A.BlueDam, "Blue Dam - Star Mist", 0x2F, I.StarMist),
+    chest(452_00_48, A.BlueDam, "Blue Dam - Wind Scarf", 0x30, I.WindScarf),
     chest(452_00_49, A.BlueDam, "Blue Dam - ColorScarf", 0x31, I.ColorScarf),
     chest(452_00_50, A.BlueDam, "Blue Dam - Trimate", 0x32, I.Trimate),
-    chest(452_00_51, A.BlueDam, "Blue Dam - StormGear", 0x33, I.StormGear),
+    chest(452_00_51, A.BlueDam, "Blue Dam - Storm Gear", 0x33, I.StormGear),
     flag(452_02_03, A.BlueDam, "Blue Dam - Console", I.BlueDamFlag, 0xC72F).fix(
         I.BlueDamFlag
     ),
 ]
 
 green_dam_locations = [
-    chest(452_00_52, A.GreenDam, "Green Dam - StarMist", 0x34, I.StarMist),
+    chest(452_00_52, A.GreenDam, "Green Dam - Star Mist", 0x34, I.StarMist),
     chest(452_00_53, A.GreenDam, "Green Dam - Aegis", 0x35, I.Aegis),
     chest(452_00_54, A.GreenDam, "Green Dam - Telepipe", 0x36, I.Telepipe),
-    chest(452_00_55, A.GreenDam, "Green Dam - GrSleeves", 0x37, I.GrSleeves),
-    chest(452_00_56, A.GreenDam, "Green Dam - TruthSlvs", 0x38, I.TruthSlvs),
+    chest(452_00_55, A.GreenDam, "Green Dam - Gr Sleeves", 0x37, I.GrSleeves),
+    chest(452_00_56, A.GreenDam, "Green Dam - Truth Slvs", 0x38, I.TruthSlvs),
     flag(452_02_04, A.GreenDam, "Green Dam - Console", I.GreenDamFlag, 0xC72D).fix(
         I.GreenDamFlag
     ),
 ]
 
 bio_systems_lab_locations = [
-    chest(452_00_57, A.BioSystemsLab, "Bio-Systems Lab - Trimate", 0x39, I.Trimate),
-    chest(452_00_58, A.BioSystemsLab, "Bio-Systems Lab - Antidote", 0x3A, I.Antidote),
     chest(
-        452_00_59, A.BioSystemsLab, "Bio-Systems Lab - PoisonShot", 0x3B, I.PoisonShot
+        452_00_57,
+        A.BioSystemsLabBasement,
+        "Bio-Systems Lab - Trimate",
+        0x39,
+        I.Trimate,
+    ),
+    chest(
+        452_00_58,
+        A.BioSystemsLabBasement,
+        "Bio-Systems Lab - Antidote",
+        0x3A,
+        I.Antidote,
+    ),
+    chest(
+        452_00_59,
+        A.BioSystemsLabBasement,
+        "Bio-Systems Lab - PoisonShot",
+        0x3B,
+        I.PoisonShot,
     ),
     chest(452_00_60, A.BioSystemsLab, "Bio-Systems Lab - Antidote 2", 0x3C, I.Antidote),
     chest(452_00_61, A.BioSystemsLab, "Bio-Systems Lab - Scalpel", 0x3D, I.Scalpel),
-    chest(452_00_62, A.BioSystemsLab, "Bio-Systems Lab - StarMist", 0x3E, I.StarMist),
+    chest(452_00_62, A.BioSystemsLab, "Bio-Systems Lab - Star Mist", 0x3E, I.StarMist),
     chest(452_00_63, A.BioSystemsLab, "Bio-Systems Lab - Dynamite", 0x3F, I.Dynamite),
     granted(
         452_01_04,
@@ -274,13 +309,13 @@ bio_systems_lab_locations = [
 ]
 
 climatrol_locations = [
-    chest(452_00_64, A.Climatrol, "Climatrol - JwlRibbon", 0x40, I.JwlRibbon),
+    chest(452_00_64, A.Climatrol, "Climatrol - Jwl Ribbon", 0x40, I.JwlRibbon),
     chest(452_00_65, A.Climatrol, "Climatrol - FiberVest", 0x41, I.FiberVest),
     chest(452_00_66, A.Climatrol, "Climatrol - KnifeBoots", 0x42, I.KnifeBoots),
-    chest(452_00_67, A.Climatrol, "Climatrol - SilRibbon", 0x43, I.SilRibbon),
+    chest(452_00_67, A.Climatrol, "Climatrol - Sil Ribbon", 0x43, I.SilRibbon),
     chest(452_00_68, A.Climatrol, "Climatrol - Sandals", 0x44, I.Sandals),
-    chest(452_00_69, A.Climatrol, "Climatrol - LaserBar", 0x45, I.LaserBar),
-    chest(452_00_70, A.Climatrol, "Climatrol - CeramBar", 0x46, I.CeramBar),
+    chest(452_00_69, A.Climatrol, "Climatrol - Laser Bar", 0x45, I.LaserBar),
+    chest(452_00_70, A.Climatrol, "Climatrol - Ceram Bar", 0x46, I.CeramBar),
     flag(452_02_05, A.Climatrol, "Climatrol - Neifirst", I.NeifirstFlag, 0xC735).fix(
         I.NeifirstFlag
     ),
@@ -292,16 +327,16 @@ climatrol_locations = [
 naval_locations = [
     chest(452_00_71, A.DezolisDungeons, "Naval - NeiShield", 0x47, I.NeiShield),
     chest(452_00_72, A.DezolisDungeons, "Naval - NeiEmel", 0x48, I.NeiEmel),
-    chest(452_00_73, A.DezolisDungeons, "Naval - TruthSlvs", 0x49, I.TruthSlvs),
+    chest(452_00_73, A.DezolisDungeons, "Naval - Truth Slvs", 0x49, I.TruthSlvs),
     chest(452_00_74, A.DezolisDungeons, "Naval - Trimate", 0x4A, I.Trimate),
-    chest(452_00_75, A.DezolisDungeons, "Naval - MirEmel", 0x4B, I.MirEmel),
-    chest(452_00_76, A.DezolisDungeons, "Naval - LaconEmel", 0x4C, I.LaconEmel),
+    chest(452_00_75, A.DezolisDungeons, "Naval - Mir Emel", 0x4B, I.MirEmel),
+    chest(452_00_76, A.DezolisDungeons, "Naval - Lacon Emel", 0x4C, I.LaconEmel),
     chest(452_00_77, A.DezolisDungeons, "Naval - GrSleeves", 0x4D, I.GrSleeves),
 ]
 
 menobe_locations = [
     chest(452_00_78, A.DezolisDungeons, "Menobe - NeiCrown", 0x4E, I.NeiCrown),
-    chest(452_00_79, A.DezolisDungeons, "Menobe - StormGear", 0x4F, I.StormGear),
+    chest(452_00_79, A.DezolisDungeons, "Menobe - Storm Gear", 0x4F, I.StormGear),
     chest(452_00_80, A.DezolisDungeons, "Menobe - NeiMet", 0x50, I.NeiMet),
     chest(452_00_81, A.DezolisDungeons, "Menobe - ColorScarf", 0x51, I.ColorScarf),
 ]
@@ -310,13 +345,13 @@ ikuto_locations = [
     chest(452_00_82, A.DezolisDungeons, "Ikuto - NeiSlasher", 0x52, I.NeiSlasher),
     chest(452_00_83, A.DezolisDungeons, "Ikuto - NeiShot", 0x53, I.NeiShot),
     chest(452_00_84, A.DezolisDungeons, "Ikuto - FireStaff", 0x54, I.FireStaff),
-    chest(452_00_85, A.DezolisDungeons, "Ikuto - LacnMace", 0x55, I.LacnMace),
-    chest(452_00_86, A.DezolisDungeons, "Ikuto - PlsCannon", 0x56, I.PlsCannon),
-    chest(452_00_87, A.DezolisDungeons, "Ikuto - LacDagger", 0x57, I.LacDagger),
+    chest(452_00_85, A.DezolisDungeons, "Ikuto - Lacn Mace", 0x55, I.LacnMace),
+    chest(452_00_86, A.DezolisDungeons, "Ikuto - Pls Cannon", 0x56, I.PlsCannon),
+    chest(452_00_87, A.DezolisDungeons, "Ikuto - Lac Dagger", 0x57, I.LacDagger),
 ]
 
 guaron_locations = [
-    chest(452_00_88, A.DezolisDungeons, "Guaron - AmberRobe", 0x58, I.AmberRobe),
+    chest(452_00_88, A.DezolisDungeons, "Guaron - Amber Robe", 0x58, I.AmberRobe),
     chest(452_00_89, A.DezolisDungeons, "Guaron - Laconinish", 0x59, I.Laconinish),
     chest(452_00_90, A.DezolisDungeons, "Guaron - CrystChest", 0x5A, I.CrystChest),
     chest(452_00_91, A.DezolisDungeons, "Guaron - NeiCape", 0x5B, I.NeiCape),
@@ -345,18 +380,37 @@ oputa_locations = [
 ]
 
 control_tower_locations = [
-    # TODO all four card locations are handled by one function; split somehow?
-    flag(
-        452_01_07, A.ControlTower, "Control Tower - Green Card", I.GreenCard, 0xC723
-    ).fix(I.GreenCard),
-    flag(
-        452_01_08, A.ControlTower, "Control Tower - Blue Card", I.BlueCard, 0xC724
-    ).fix(I.BlueCard),
-    flag(
-        452_01_09, A.ControlTower, "Control Tower - Yellow Card", I.YellowCard, 0xC725
-    ).fix(I.YellowCard),
-    flag(452_01_10, A.ControlTower, "Control Tower - Red Card", I.RedCard, 0xC726).fix(
-        I.RedCard
+    granted(
+        452_01_07,
+        A.ControlTower,
+        "Control Tower - Green Console",
+        I.GreenCard,
+        0xBF872,
+        0xC723,
+    ),
+    granted(
+        452_01_08,
+        A.ControlTower,
+        "Control Tower - Blue Console",
+        I.BlueCard,
+        0xBF873,
+        0xC724,
+    ),
+    granted(
+        452_01_09,
+        A.ControlTower,
+        "Control Tower - Yellow Console",
+        I.YellowCard,
+        0xBF874,
+        0xC725,
+    ),
+    granted(
+        452_01_10,
+        A.ControlTower,
+        "Control Tower - Red Console",
+        I.RedCard,
+        0xBF875,
+        0xC726,
     ),
 ]
 
@@ -372,9 +426,7 @@ kueri_locations = [
 ]
 
 gaira_locations = [
-    flag(452_02_07, A.Gaira, "Gaira - Console", I.SpaceshipFlag, 0xC73F).fix(
-        I.SpaceshipFlag
-    ),
+    granted(452_02_07, A.Gaira, "Gaira - Console", I.SpaceshipFlag, 0xBF89D, 0xC754)
 ]
 
 noah_locations = [

@@ -14,18 +14,30 @@ from .Constants import (
     JUMP_FIX_RECORDER_LOOP_CT_OUTSIDE,
     JUMP_FIX_RECORDER_LOOP_GOVERNOR,
     JUMP_FOLLOWING_CHARACTER_SPEED,
+    JUMP_GAIRA_CONTROL_PANEL,
+    JUMP_GET_CARD,
+    JUMP_INTERACT_ADD_ITEM,
+    JUMP_JET_SCOOTER_GUY,
     JUMP_SET_LEAF_FLAG,
     JUMP_SET_MUSIK_FLAG,
     JUMP_SET_RECORDER_FLAG,
+    MISC_MESSAGES,
+    MOTAVIAN_INIT_DELETE_CHECK,
     MOVE_FRAME_COUNT,
     MOVE_NEGATIVE,
     MOVE_POSITIVE,
     name_space,
+    PATCH_ADD_ITEM,
+    PATCH_ADD_ITEM2_REARRANGE,
     PATCH_APPLY_MESETA_MULTIPLIER,
     PATCH_APPLY_XP_MULTIPLIER,
+    PATCH_CARD_LOOKUP_TABLE,
     PATCH_FIX_RECORDER_LOOP_CT_OUTSIDE,
     PATCH_FIX_RECORDER_LOOP_GOVERNOR,
     PATCH_FOLLOWING_CHARACTER_SPEED,
+    PATCH_GAIRA_CONTROL_PANEL,
+    PATCH_GET_CARD,
+    PATCH_JET_SCOOTER_GUY_TALK,
     PATCH_MULWW,
     PATCH_SET_LEAF_FLAG,
     PATCH_SET_MUSIK_FLAG,
@@ -43,6 +55,8 @@ from .Options import (
     SPEED_NORMAL,
     SPEED_QUADRUPLE,
 )
+from .Locations import LocationType
+from .Messages import miscellaneous_messages, translate_block
 
 
 if TYPE_CHECKING:
@@ -52,7 +66,7 @@ if TYPE_CHECKING:
 
 REV02_UE_HASH = "0fa38b12cf0ab0163d865600ac731a9a"
 
-AP_ITEM_CODE = 0  # TODO this makes it show up as Garbage
+AP_ITEM_CODE = 0xE0
 
 
 encounter_rate_ops = {
@@ -678,18 +692,450 @@ def write_tokens(
             )
             offset += 32
 
+    # add our custom messages
+    misc = miscellaneous_messages[:]
+    misc.append("You got an APItem!<END>")
+    misc.append("You got access to<NL>the Jet Scooter!<END>")
+    misc.append("You got access to<NL>the Spaceship!<END>")
+    patch.write_token(APTokenTypes.WRITE, MISC_MESSAGES, translate_block(misc))
+
+    # patch Interact_AddItem to allow for new item codes
+    patch.write_token(
+        APTokenTypes.WRITE,
+        JUMP_INTERACT_ADD_ITEM,
+        bytes(
+            [
+                # jmp PATCH_AddItem
+                0x4E,
+                0xF9,
+                0x00,
+                0x0B,
+                0xF7,
+                0xE4,
+            ]
+        ),
+    )
+    patch.write_token(
+        APTokenTypes.WRITE,
+        PATCH_ADD_ITEM2_REARRANGE,
+        bytes(
+            [
+                # move.w (characterIndex).w,D1w
+                0x32,
+                0x38,
+                0xDE,
+                0x60,
+                # bsr.w AddItemToInventory2
+                0x61,
+                0x00,
+                0xC6,
+                0x2C,
+                # addq.b #1,(pFlag)
+                0x52,
+                0x10,
+            ]
+        ),
+    )
+    patch.write_token(
+        APTokenTypes.WRITE,
+        PATCH_ADD_ITEM,
+        bytes(
+            [
+                # cmp.b #0xe0,D0b
+                0xB0,
+                0x3C,
+                0x00,
+                0xE0,
+                # bne.b +10
+                0x66,
+                0x0A,
+                # move.w #0x1914,(scriptQueue).l
+                0x33,
+                0xFC,
+                0x19,
+                0x14,
+                0xFF,
+                0xFF,
+                0xCD,
+                0x00,
+                # bra.b +62
+                0x60,
+                0x3E,
+                # cmp.b #0xe1,D0b
+                0xB0,
+                0x3C,
+                0x00,
+                0xE1,
+                # bne.b +18
+                0x66,
+                0x12,
+                # move.w #0x1915,(scriptQueue).l
+                0x33,
+                0xFC,
+                0x19,
+                0x15,
+                0xFF,
+                0xFF,
+                0xCD,
+                0x00,
+                # move.b 0x2,(eventFlagJetScooter).l
+                0x13,
+                0xFC,
+                0x00,
+                0x02,
+                0xFF,
+                0xFF,
+                0xC7,
+                0x16,
+                # bra.b +38
+                0x60,
+                0x26,
+                # cmp.b #0xe2,D0b
+                0xB0,
+                0x3C,
+                0x00,
+                0xE2,
+                # bne.b +18
+                0x66,
+                0x12,
+                # move.w #0x1916,(scriptQueue).l
+                0x33,
+                0xFC,
+                0x19,
+                0x16,
+                0xFF,
+                0xFF,
+                0xCD,
+                0x00,
+                # move.b 0x1,(eventFlagSpaceship).l
+                0x13,
+                0xFC,
+                0x00,
+                0x01,
+                0xFF,
+                0xFF,
+                0xC7,
+                0x3F,
+                # bra.b +14
+                0x60,
+                0x0E,
+                # move.w #0x1702,(scriptQueue).l
+                0x33,
+                0xFC,
+                0x17,
+                0x02,
+                0xFF,
+                0xFF,
+                0xCD,
+                0x00,
+                # jmp Interact_AddItem+10
+                0x4E,
+                0xF9,
+                0x00,
+                0x00,
+                0xE8,
+                0x54,
+                # jmp Patch_AddItem2+8
+                0x4E,
+                0xF9,
+                0x00,
+                0x00,
+                0xE8,
+                0xA4,
+            ]
+        ),
+    )
+
+    # patch jet scooter guy to use new flag and give different items
+    patch.write_token(
+        APTokenTypes.WRITE,
+        MOTAVIAN_INIT_DELETE_CHECK,
+        bytes(
+            [
+                # cmpi.b #0x1,(PATCH_eventFlagJetScooterGuy).w
+                0x0C,
+                0x38,
+                0x00,
+                0x01,
+                0xC7,
+                0x53,
+            ]
+        ),
+    )
+    patch.write_token(
+        APTokenTypes.WRITE,
+        JUMP_JET_SCOOTER_GUY,
+        bytes(
+            [
+                # jmp PATCH_JetScooterGuyTalk
+                0x4E,
+                0xF9,
+                0x00,
+                0x0B,
+                0xF8,
+                0x38,
+                # could also put 14 nop here to reclaim space sometime
+            ]
+        ),
+    )
+    patch.write_token(
+        APTokenTypes.WRITE,
+        PATCH_JET_SCOOTER_GUY_TALK,
+        bytes(
+            [
+                # move.w #0x1,(interactionRoutine2).l
+                0x33,
+                0xFC,
+                0x00,
+                0x01,
+                0xFF,
+                0xFF,
+                0xDE,
+                0x72,
+                # movea.l #PATCH_eventFlagJetScooterGuy,A0
+                0x20,
+                0x7C,
+                0xFF,
+                0xFF,
+                0xC7,
+                0x53,
+                # tst.b (A0)
+                0x4A,
+                0x10,
+                # beq.b +10
+                0x67,
+                0x0A,
+                # move.w #0x1684,(scriptQueue).l
+                0x33,
+                0xFC,
+                0x16,
+                0x85,
+                0xFF,
+                0xFF,
+                0xCD,
+                0x00,
+                # rts
+                0x4E,
+                0x75,
+                # move.b #JET_SCOOTER_ITEM,D0b
+                0x10,
+                0x3C,
+                0x00,
+                0xE1,
+                # cmp.b #JET_SCOOTER_ITEM,D0b
+                0xB0,
+                0x3C,
+                0x00,
+                0xE1,
+                # bne.b +6
+                0x67,
+                0x06,
+                # jmp Interact_AddItem
+                0x4E,
+                0xF9,
+                0x00,
+                0x00,
+                0xE8,
+                0x4A,
+                # move.w #0x1685,(scriptQueue).l
+                0x33,
+                0xFC,
+                0x16,
+                0x85,
+                0xFF,
+                0xFF,
+                0xCD,
+                0x00,
+                # jmp Interact_NPC.jetScooterGuy+6
+                0x4E,
+                0xF9,
+                0x00,
+                0x00,
+                0xE6,
+                0x96,
+            ]
+        ),
+    )
+
+    # patch Event_GairaControlPanel to use new flag and possibly give an item
+    patch.write_token(
+        APTokenTypes.WRITE,
+        JUMP_GAIRA_CONTROL_PANEL,
+        bytes(
+            [
+                # jmp PATCH_GairaControlPanel.l
+                0x4E,
+                0xF9,
+                0x00,
+                0x0B,
+                0xF8,
+                0x92,
+            ]
+        ),
+    )
+    patch.write_token(
+        APTokenTypes.WRITE,
+        PATCH_GAIRA_CONTROL_PANEL,
+        bytes(
+            [
+                # tst.b (PATCH_eventFlagGairaControlPanel).l
+                0x4A,
+                0x39,
+                0xFF,
+                0xFF,
+                0xC7,
+                0x54,
+                # bne.b +42
+                0x66,
+                0x2A,
+                # move.b #SPACESHIP_ITEM,D0b
+                0x10,
+                0x3C,
+                0x00,
+                0xE2,
+                # cmp.b #SPACESHIP_ITEM,D0b
+                0xB0,
+                0x3C,
+                0x00,
+                0xE2,
+                # bne.b +6
+                0x66,
+                0x06,
+                # move.b #1,(A0)
+                0x10,
+                0xBC,
+                0x00,
+                0x01,
+                # bra.b +18
+                0x60,
+                0x12,
+                # jsr Interact_AddItem.l
+                0x4E,
+                0xB9,
+                0x00,
+                0x00,
+                0xE8,
+                0x4A,
+                # beq.b +8
+                0x66,
+                0x08,
+                # move.b #1,(PATCH_eventFlagGairaControlPanel).l
+                0x13,
+                0xFC,
+                0x00,
+                0x01,
+                0xFF,
+                0xFF,
+                0xC7,
+                0x54,
+                # rts
+                0x4E,
+                0x75,
+                # move.b #1,(PATCH_eventFlagGairaControlPanel).l
+                0x13,
+                0xFC,
+                0x00,
+                0x01,
+                0xFF,
+                0xFF,
+                0xC7,
+                0x54,
+                # move.w #0x10,(sceneIndex).l
+                0x33,
+                0xFC,
+                0x00,
+                0x10,
+                0xFF,
+                0xFF,
+                0xF7,
+                0x60,
+                # jmp Event_GairaControlPanel+10
+                0x4E,
+                0xF9,
+                0x00,
+                0x00,
+                0xDF,
+                0xF0,
+            ]
+        ),
+    )
+
+    # patch Event_GetCard to allow custom item IDs
+    patch.write_token(
+        APTokenTypes.WRITE,
+        JUMP_GET_CARD,
+        bytes(
+            [
+                # jmp PATCH_GetCard.l
+                0x4E,
+                0xF9,
+                0x00,
+                0x0B,
+                0xF8,
+                0x76,
+                # nop
+                0x4E,
+                0x71,
+            ]
+        ),
+    )
+    patch.write_token(APTokenTypes.WRITE, PATCH_CARD_LOOKUP_TABLE, bytes([5, 6, 7, 8]))
+    patch.write_token(
+        APTokenTypes.WRITE,
+        PATCH_GET_CARD,
+        bytes(
+            [
+                # movem.l { A1 },-(SP)
+                0x48,
+                0xE7,
+                0x00,
+                0x40,
+                # subi.w #0x13,D0w
+                0x04,
+                0x40,
+                0x00,
+                0x13,
+                # movea.l #PATCH_CardLookupTable,A1
+                0x22,
+                0x7C,
+                0x00,
+                0x0B,
+                0xF8,
+                0x72,
+                # adda.w D0w,A1
+                0xD2,
+                0xC0,
+                # move.b (A1),D0b
+                0x10,
+                0x11,
+                # movem.l (SP)+,{ A1 }
+                0x4C,
+                0xDF,
+                0x02,
+                0x00,
+                # jmp Interact_AddItem.l
+                0x4E,
+                0xF9,
+                0x00,
+                0x00,
+                0xE8,
+                0x4A,
+            ]
+        ),
+    )
+
     # patch items
     valid_locations = set([l.name for l in world.get_locations()])
     for location_data in locations:
         if not location_data.name in valid_locations:
             continue
         item = world.get_location(location_data.name).item
-        item_hex = AP_ITEM_CODE
         if item is None:
             raise Exception(f"Location {location_data.name} has no item???")
         # don't bother replacing an item that is the same
         if item.game == game_name and location_data.fixed_item == item.name:
             continue
+        item_hex = AP_ITEM_CODE
         item_data = None
         if item.code is not None:
             if item.code in items_by_id:
@@ -699,17 +1145,19 @@ def write_tokens(
         # print(item.name, 'in', location_data.name, ':', hex(item_hex))
         rom = location_data.rom_location
         if rom is not None:
-            if location_data.type == "chest":
+            if location_data.type == LocationType.CHEST:
                 if item_data:
                     patch.write_token(
                         APTokenTypes.WRITE, rom.address, item_data.get_chest_bytes()
                     )
                 else:
                     patch.write_token(
-                        APTokenTypes.WRITE, rom.address, rom.format(item_hex)
+                        APTokenTypes.WRITE,
+                        rom.address,
+                        (item_hex | 0x8000).to_bytes(2, "big"),
                     )
+                continue
             else:
-                # TODO this might fail with non-native items?
                 patch.write_token(APTokenTypes.WRITE, rom.address, rom.format(item_hex))
         else:
             raise Exception(

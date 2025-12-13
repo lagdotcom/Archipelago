@@ -11,6 +11,7 @@ if TYPE_CHECKING:
     from worlds._bizhawk.context import BizHawkClientContext
 
 from .laglib import MemoryManager, genesis_ram as RAM
+from .Characters import character_names
 from .Constants import (
     chest_flags,
     current_money,
@@ -42,6 +43,7 @@ logger = logging.getLogger("Client")
 
 
 class InventorySlot(NamedTuple):
+    char_name: str
     count_address: int
     used: int
 
@@ -158,11 +160,11 @@ class PhSt2Client(BizHawkClient):
     def is_playing(self):
         oe = opening_ending_flag.get(self.mem)
         mode = game_mode.get(self.mem)
-        # SCENE is possible here but can cause some bugs I think
         return oe == 0 and GameMode(mode) in {
             GameMode.MAP,
             GameMode.BATTLE,
             GameMode.ENDING,
+            GameMode.SCENE,
         }
 
     async def location_check(self, ctx: "BizHawkClientContext"):
@@ -198,7 +200,9 @@ class PhSt2Client(BizHawkClient):
             inventory = self.mem.get_bytes(inv_span)
             used_slots = inventory[0]
             if used_slots < 16:
-                return InventorySlot(inv_span.address, used_slots)
+                return InventorySlot(
+                    character_names[char_id], inv_span.address, used_slots
+                )
 
     async def show_inventory_full_message(self, ctx: "BizHawkClientContext"):
         if not self.showing_inventory_full_message:
@@ -231,20 +235,32 @@ class PhSt2Client(BizHawkClient):
             return
 
         while len(self.items_queue):
-            slot = self.get_empty_inventory_slot()
-            if slot is None:
-                await self.show_inventory_full_message(ctx)
-                return
-            await self.reset_inventory_full_message(ctx)
-
             item_id = self.items_queue.popleft()
             item = items_by_id[item_id]
-            if item.code is None:
+            if item.ram_flag:
+                if await self.mem.write_span(ctx, item.ram_flag, item.ram_value):
+                    await bizhawk.display_message(
+                        ctx.bizhawk_ctx, f"Received item: {item.name}"
+                    )
+                    logger.debug(f"Received flag-item {item.name}")
+                else:
+                    self.items_queue.append(item_id)
+                    return  # leave it until next tick
+            elif item.code is None:
                 logger.warning(f"Don't know how to reward non-code item: {item.name}")
             else:
+                slot = self.get_empty_inventory_slot()
+                if slot is None:
+                    await self.show_inventory_full_message(ctx)
+                    continue
+                await self.reset_inventory_full_message(ctx)
+
                 if await self.mem.write_list(
                     ctx, slot.write_list(item.code), slot.guard_list()
                 ):
+                    await bizhawk.display_message(
+                        ctx.bizhawk_ctx, f"{slot.char_name} received item: {item.name}"
+                    )
                     logger.debug(f"Received item {item.name}")
                 else:
                     self.items_queue.append(item_id)

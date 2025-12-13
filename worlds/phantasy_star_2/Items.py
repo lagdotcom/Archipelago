@@ -3,7 +3,9 @@ from typing import NamedTuple, Optional
 
 from BaseClasses import ItemClassification as IC
 
+from .Constants import jet_scooter_flag, spaceship_flag
 from .Data import Item as I
+from .laglib import IntSpan
 
 
 class ItemType(Enum):
@@ -11,6 +13,7 @@ class ItemType(Enum):
     ITEM = 1
     MONEY = 2
     FLAG = 3
+    FLAG_AS_ITEM = 4
 
 
 class ItemData(NamedTuple):
@@ -20,9 +23,13 @@ class ItemData(NamedTuple):
     code: Optional[int]
     classification: IC
     meseta: int = 0
+    ram_flag: Optional[IntSpan] = None
+    ram_value: int = 1
 
     def get_chest_bytes(self):
-        if self.meseta > 0:
+        if self.name == I.Garbage:
+            return (0).to_bytes(2, "big")
+        elif self.meseta > 0:
             return (self.meseta & 0x7FFF).to_bytes(2, "big")
         elif self.code is not None:
             return (0x8000 | self.code).to_bytes(2, "big")
@@ -58,13 +65,30 @@ key_items = [
 
 flag_items = [
     ItemData(452_9_000, ItemType.FLAG, I.MusikFlag, None, IC.progression),
-    ItemData(452_9_001, ItemType.FLAG, I.JetScooterFlag, None, IC.progression),
+    ItemData(
+        452_9_001,
+        ItemType.FLAG_AS_ITEM,
+        I.JetScooterFlag,
+        0xE1,
+        IC.progression,
+        0,
+        jet_scooter_flag,
+        2,
+    ),
     ItemData(452_9_002, ItemType.FLAG, I.NeifirstFlag, None, IC.progression),
     ItemData(452_9_003, ItemType.FLAG, I.RedDamFlag, None, IC.progression),
     ItemData(452_9_004, ItemType.FLAG, I.YellowDamFlag, None, IC.progression),
     ItemData(452_9_005, ItemType.FLAG, I.BlueDamFlag, None, IC.progression),
     ItemData(452_9_006, ItemType.FLAG, I.GreenDamFlag, None, IC.progression),
-    ItemData(452_9_007, ItemType.FLAG, I.SpaceshipFlag, None, IC.progression),
+    ItemData(
+        452_9_007,
+        ItemType.FLAG_AS_ITEM,
+        I.SpaceshipFlag,
+        0xE2,
+        IC.progression,
+        0,
+        spaceship_flag,
+    ),
     ItemData(452_9_008, ItemType.FLAG, I.WinTheGameFlag, None, IC.progression),
 ]
 

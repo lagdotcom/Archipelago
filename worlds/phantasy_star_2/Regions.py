@@ -31,47 +31,37 @@ all_regions = [
                 [hasJetScooter, need_all([canPassDarumTunnel, has(I.KeyTube)])]
             ),
             A.Kueri: canPassDarumTunnel,
-            A.Uzo: hasJetScooter,
-            A.Climatrol: has_all({I.JetScooterFlag, I.MarueraGum}),
-            A.MotaviaAfterNeifirst: has(I.NeifirstFlag),
-        },
-    ),
-    RegionData(
-        A.Shure,
-        {
-            A.ShureLockedChests: has(I.SmallKey),
-        },
-    ),
-    RegionData(A.ShureLockedChests, {}),
-    RegionData(A.Nido, {}),
-    RegionData(A.Oputa, {}),
-    RegionData(
-        A.BioSystemsLab,
-        {
-            A.BioSystemsLabBasement: hasDynamite(3),
-        },
-    ),
-    RegionData(A.BioSystemsLabBasement, {}),
-    RegionData(A.Roron, {}),
-    RegionData(A.Kueri, {}),
-    RegionData(A.Uzo, {}),
-    RegionData(A.Climatrol, {}),
-    # mid game
-    RegionData(
-        A.MotaviaAfterNeifirst,
-        {
-            A.ControlTower: has(I.MusikFlag),
-            A.RedDam: has(I.RedCard),
-            A.YellowDam: has(I.YellowCard),
-            A.BlueDam: has(I.BlueCard),
-            A.GreenDam: has(I.GreenCard),
+            A.ControlTower: has_all({I.MusikFlag, I.NeifirstFlag}),
+            A.MotavianWater: hasJetScooter,
             A.Gaira: has_all(
                 {I.RedDamFlag, I.YellowDamFlag, I.BlueDamFlag, I.GreenDamFlag}
             ),
             A.Dezolis: has(I.SpaceshipFlag),
         },
     ),
+    RegionData(A.Shure, {A.ShureLockedChests: has(I.SmallKey)}),
+    RegionData(A.ShureLockedChests, {}),
+    RegionData(A.Nido, {}),
+    RegionData(A.Oputa, {}),
+    RegionData(A.BioSystemsLab, {A.BioSystemsLabBasement: hasDynamite(3)}),
+    RegionData(A.BioSystemsLabBasement, {}),
+    RegionData(A.Roron, {}),
+    RegionData(A.Kueri, {}),
+    # mid game
+    RegionData(
+        A.MotavianWater,
+        {
+            A.Uzo: always(),
+            A.Climatrol: has(I.MarueraGum),
+            A.RedDam: has(I.RedCard),
+            A.YellowDam: has(I.YellowCard),
+            A.BlueDam: has(I.BlueCard),
+            A.GreenDam: has(I.GreenCard),
+        },
+    ),
     RegionData(A.ControlTower, {}),
+    RegionData(A.Uzo, {}),
+    RegionData(A.Climatrol, {}),
     RegionData(A.RedDam, {}),
     RegionData(A.YellowDam, {}),
     RegionData(A.BlueDam, {}),
