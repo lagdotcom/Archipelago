@@ -97,6 +97,25 @@ class RandomiseTechs(Choice):
     option_sensible_shuffle = TECHS_SENSIBLE_SHUFFLE
 
 
+CHARS_VANILLA = 0
+CHARS_SHUFFLE = 1
+CHARS_SHUFFLE_EXCEPT_NEI = 2
+
+
+class RandomiseCharacters(Choice):
+    """
+    Vanilla: Characters arrive in the normal order.
+    Shuffle: Characters arrive in a random order (Neifirst will always kill second character!)
+    Shuffle except Nei: Characters arrive in a random order, but Nei will always be second.
+    """
+
+    display_name = "Randomise Characters"
+    default = CHARS_VANILLA
+    option_vanilla = CHARS_VANILLA
+    option_shuffle = CHARS_SHUFFLE
+    option_shuffle_except_nei = CHARS_SHUFFLE_EXCEPT_NEI
+
+
 ENCOUNTER_DOUBLE = 2
 ENCOUNTER_NORMAL = 3
 ENCOUNTER_HALF = 4
@@ -134,6 +153,7 @@ class PhSt2Options(PerGameCommonOptions):
     item_distribution: ItemDistribution
     useful_items: UsefulItems
     randomise_techs: RandomiseTechs
+    randomise_chars: RandomiseCharacters
     meseta_multi: MesetaMultiplier
     xp_multi: XPMultiplier
     encounter_rate: EncounterRate
@@ -142,7 +162,10 @@ class PhSt2Options(PerGameCommonOptions):
 
 option_groups = [
     OptionGroup("Gameplay Options", [Goal, StartingMeseta]),
-    OptionGroup("Randomisation", [ItemDistribution, UsefulItems, RandomiseTechs]),
+    OptionGroup(
+        "Randomisation",
+        [ItemDistribution, UsefulItems, RandomiseTechs, RandomiseCharacters],
+    ),
     OptionGroup(
         "Quality of Life",
         [MesetaMultiplier, XPMultiplier, EncounterRate, MovementSpeed],
@@ -156,6 +179,7 @@ options_presets = {
         "item_distribution": DIST_SHUFFLE,
         "useful_items": 0,
         "randomise_techs": TECHS_VANILLA,
+        "randomise_chars": CHARS_VANILLA,
         "meseta_multi": 1,
         "xp_multi": 1,
         "encounter_rate": ENCOUNTER_NORMAL,
@@ -167,6 +191,7 @@ options_presets = {
         "item_distribution": DIST_SHUFFLE,
         "useful_items": 0,
         "randomise_techs": TECHS_SENSIBLE_SHUFFLE,
+        "randomise_chars": CHARS_SHUFFLE_EXCEPT_NEI,
         "meseta_multi": 3,
         "xp_multi": 5,
         "encounter_rate": ENCOUNTER_HALF,

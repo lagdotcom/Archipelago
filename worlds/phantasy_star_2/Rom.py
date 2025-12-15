@@ -3,12 +3,19 @@ from typing import Iterable, TYPE_CHECKING
 
 from worlds.Files import APProcedurePatch, APTokenMixin, APTokenTypes
 
-from .Characters import character_names
+from .Characters import Char, Equipped
 from .Constants import (
+    BATTLE_CHAR_OBJECTS,
+    # TODO CHAR_INTRO_TEXT_START,
+    # TODO CHAR_RENAME_TEXT_ID,
     CHECKSUM_FAILED_JUMP,
     ENCOUNTER_RATE_SHIFT,
     game_name,
     goal_space,
+    INITIAL_CHAR_NAMES,
+    INITIAL_CHAR_SETUP,
+    ITEM_DATA_LIST,
+    JOB_LIST,
     JUMP_APPLY_MESETA_MULTIPLIER,
     JUMP_APPLY_XP_MULTIPLIER,
     JUMP_FIX_RECORDER_LOOP_CT_OUTSIDE,
@@ -38,15 +45,24 @@ from .Constants import (
     PATCH_GAIRA_CONTROL_PANEL,
     PATCH_GET_CARD,
     PATCH_JET_SCOOTER_GUY_TALK,
-    PATCH_MULWW,
+    PATCH_MUL_WW,
     PATCH_SET_LEAF_FLAG,
     PATCH_SET_MUSIK_FLAG,
     PATCH_SET_RECORDER_FLAG,
-    STARTING_MESETA_AMOUNT,
+    PORTRAITS_LIST,
+    ROLF_EXP_TABLE,
+    rolf_portrait_op,
+    rolf_portrait_palette_op,
+    ROLF_PROFILE,
+    starting_meseta_amount,
     TECH_LEARN_TABLES,
+    WALK_SPRITE_LIST,
+    WINDOW_DATA_LIST,
 )
-from .Items import items_by_id
+from .Data.Types import EquipSlot
+from .Items import all_items, items_by_id, items_by_name, ItemType
 from .Options import (
+    CHARS_VANILLA,
     ENCOUNTER_DOUBLE,
     ENCOUNTER_EIGHTH,
     ENCOUNTER_HALF,
@@ -54,9 +70,15 @@ from .Options import (
     ENCOUNTER_QUARTER,
     SPEED_NORMAL,
     SPEED_QUADRUPLE,
+    TECHS_VANILLA,
 )
 from .Locations import LocationType
-from .Messages import miscellaneous_messages, translate_block
+from .Messages import (
+    window_tokens,
+    miscellaneous_messages,
+    translate_block,
+    translate_message,
+)
 
 
 if TYPE_CHECKING:
@@ -368,7 +390,7 @@ def write_tokens(
     if write_mulww:
         patch.write_token(
             APTokenTypes.WRITE,
-            PATCH_MULWW,
+            PATCH_MUL_WW,
             bytes(
                 [
                     # movem.l { D4 D3 D2 D1 },-(SP)
@@ -679,18 +701,9 @@ def write_tokens(
 
     patch.write_token(
         APTokenTypes.WRITE,
-        STARTING_MESETA_AMOUNT,
-        world.options.starting_meseta.value.to_bytes(4, "big"),
+        starting_meseta_amount.address,
+        starting_meseta_amount.format(world.options.starting_meseta.value),
     )
-
-    if world.map_techs and world.battle_techs:
-        offset = TECH_LEARN_TABLES
-        for name in character_names:
-            patch.write_token(APTokenTypes.WRITE, offset, bytes(world.map_techs[name]))
-            patch.write_token(
-                APTokenTypes.WRITE, offset + 16, bytes(world.battle_techs[name])
-            )
-            offset += 32
 
     # add our custom messages
     misc = miscellaneous_messages[:]
@@ -1124,6 +1137,79 @@ def write_tokens(
         ),
     )
 
+    # patch characters
+    if world.options.randomise_chars.value != CHARS_VANILLA:
+        name_bytes = bytes()
+        job_bytes = bytes()
+        profile_bytes = bytes()
+        item_bytes = bytes()
+        level_bytes = bytes()
+        portrait_bytes = bytes()
+        walk_bytes = bytes()
+        battle_bytes = bytes()
+        first = world.char_order[0]
+        window_index = 0x3A
+        for ch in world.char_order:
+            window_index += 1
+            name = ch.name
+            while len(name) < 4:
+                name += "<END>"
+            name_bytes += translate_message(name)
+            job_bytes += translate_message(ch.job, window_tokens)
+            profile_bytes += format_profile(ch)
+            item_bytes += get_initial_setup_bytes(ch)
+            level_bytes += get_level_bytes(ch)
+            if ch != first:
+                portrait_bytes += ch.portrait.portrait_bytes()
+            walk_bytes += ch.walk_sprite.to_bytes()
+            battle_bytes += ch.battle_sprite.to_bytes()
+            # patch window art layout pointers
+            window_addr = WINDOW_DATA_LIST + window_index * 8
+            patch.write_token(APTokenTypes.WRITE, window_addr, ch.portrait.win_bytes())
+        patch.write_token(APTokenTypes.WRITE, INITIAL_CHAR_NAMES, name_bytes)
+        patch.write_token(APTokenTypes.WRITE, JOB_LIST, job_bytes)
+        patch.write_token(APTokenTypes.WRITE, ROLF_PROFILE, profile_bytes)
+        patch.write_token(APTokenTypes.WRITE, INITIAL_CHAR_SETUP, item_bytes)
+        patch.write_token(APTokenTypes.WRITE, ROLF_EXP_TABLE, level_bytes)
+        patch.write_token(APTokenTypes.WRITE, PORTRAITS_LIST, portrait_bytes)
+        patch.write_token(APTokenTypes.WRITE, WALK_SPRITE_LIST, walk_bytes)
+        patch.write_token(APTokenTypes.WRITE, BATTLE_CHAR_OBJECTS, battle_bytes)
+        patch.write_token(
+            APTokenTypes.WRITE,
+            rolf_portrait_op.address,
+            rolf_portrait_op.format(first.portrait.art),
+        )
+        patch.write_token(
+            APTokenTypes.WRITE,
+            rolf_portrait_palette_op.address,
+            rolf_portrait_palette_op.format(first.portrait.palette_id.value),
+        )
+        # patch item compatibilities
+        for item in all_items:
+            if item.type != ItemType.ITEM or item.code == None:
+                continue
+            mask = 1
+            who = 0
+            for ch in world.char_order:
+                if item.name in ch.can_equip:
+                    who |= mask
+                mask <<= 1
+            addr = ITEM_DATA_LIST + item.code * 0x10 + 13
+            patch.write_token(APTokenTypes.WRITE, addr, bytes([who]))
+
+    # patch tech learn lists
+    if (
+        world.options.randomise_chars.value != CHARS_VANILLA
+        or world.options.randomise_chars != TECHS_VANILLA
+    ):
+        offset = TECH_LEARN_TABLES
+        for name in world.char_names:
+            patch.write_token(APTokenTypes.WRITE, offset, bytes(world.map_techs[name]))
+            patch.write_token(
+                APTokenTypes.WRITE, offset + 16, bytes(world.battle_techs[name])
+            )
+            offset += 32
+
     # patch items
     valid_locations = set([l.name for l in world.get_locations()])
     for location_data in locations:
@@ -1165,3 +1251,63 @@ def write_tokens(
             )
 
     patch.write_file("token_data.bin", patch.get_token_binary())
+
+
+def get_initial_setup_bytes(ch: Char):
+    equipped = [0] * 5
+    inventory = [0] * 8
+    ii = 0
+    for i in ch.starting_items:
+        if isinstance(i, Equipped):
+            data = items_by_name[i.item]
+            if data.code is None:
+                raise Exception(f"cannot have {data.name} in inventory")
+            if data.slot == EquipSlot.NONE:
+                raise Exception(f"cannot equip {data.name}")
+            slot = data.slot
+            if slot == EquipSlot.TWO_HAND:
+                equipped[1] = data.code
+                equipped[2] = data.code
+            elif slot == EquipSlot.HAND and i.other_hand:
+                equipped[2] = data.code
+            else:
+                equipped[slot.value] = data.code
+            inventory[ii] = data.code | 0x80
+        else:
+            data = items_by_name[i]
+            if data.code is None or data.code >= 0x80:
+                raise Exception(f"cannot have {data.name} in inventory")
+            inventory[ii] = data.code
+        ii += 1
+    return bytes(equipped + [0, 0, ii] + inventory)
+
+
+def get_level_bytes(ch: Char):
+    result = bytes()
+    level = 0
+    for l in ch.levels:
+        level += 1
+        result += l.to_bytes(ch.name, level)
+    return result
+
+
+def format_profile(ch: Char, width: int = 22, height: int = 12):
+    msg = ""
+    y = 0
+    x = 0
+    for b in ch.profile:
+        if b == "\n":
+            if x < width:
+                msg += " " * (width - x)
+            x = 0
+            y += 1
+        elif x >= width:
+            raise Exception(f"{ch.name} profile line {y+1} is too long")
+        else:
+            msg += b
+            x += 1
+    if len(msg) != width * height:
+        raise Exception(
+            f"{ch.name} profile has wrong length: {len(msg)}, should be {width*height}"
+        )
+    return translate_message(msg, window_tokens)

@@ -16,6 +16,7 @@ def hasDynamite(count: int):
 hasJetScooter = has(I.JetScooterFlag)
 hasTeim = has(I.Teim)
 canPassDarumTunnel = need_one([hasTeim, hasJetScooter])
+canPassZemaTunnel = need_one([hasJetScooter, need_all([hasTeim, has(I.KeyTube)])])
 
 
 all_regions = [
@@ -27,11 +28,8 @@ all_regions = [
             A.Nido: hasDynamite(1),
             A.Oputa: canPassDarumTunnel,
             A.BioSystemsLab: need_all([canPassDarumTunnel, hasDynamite(2)]),
-            A.Roron: need_one(
-                [hasJetScooter, need_all([canPassDarumTunnel, has(I.KeyTube)])]
-            ),
-            A.Kueri: canPassDarumTunnel,
-            A.ControlTower: has_all({I.MusikFlag, I.NeifirstFlag}),
+            A.Roron: canPassZemaTunnel,
+            A.Kueri: canPassZemaTunnel,
             A.MotavianWater: hasJetScooter,
             A.Gaira: has_all(
                 {I.RedDamFlag, I.YellowDamFlag, I.BlueDamFlag, I.GreenDamFlag}
@@ -53,6 +51,7 @@ all_regions = [
         {
             A.Uzo: always(),
             A.Climatrol: has(I.MarueraGum),
+            A.ControlTower: has_all({I.MusikFlag, I.NeifirstFlag}),
             A.RedDam: has(I.RedCard),
             A.YellowDam: has(I.YellowCard),
             A.BlueDam: has(I.BlueCard),

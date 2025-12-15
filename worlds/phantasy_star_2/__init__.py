@@ -4,7 +4,7 @@ import settings
 
 from typing import Any, Callable, ClassVar, Iterable, Optional, Sequence, TextIO, Tuple
 from BaseClasses import CollectionState, Item, Location, MultiWorld, Region, Tutorial
-from .Characters import character_names
+from .Characters import Char, character_names, vanilla_characters
 from .Constants import game_name
 from .Data import Area
 from .Goals import get_goal_data
@@ -20,15 +20,17 @@ from .Locations import all_locations, locations_by_name, location_name_groups
 from .Options import (
     PhSt2Options,
     DIST_SHUFFLE,
+    CHARS_SHUFFLE_EXCEPT_NEI,
+    CHARS_VANILLA,
     TECHS_VANILLA,
     TECHS_SENSIBLE_SHUFFLE,
     option_groups,
     options_presets,
 )
-from .Rando import get_random_tech_choices
+from .Rando import get_random_char_order, get_random_tech_choices
 from .Regions import all_regions, regions_by_name
 from .Rom import REV02_UE_HASH, PhSt2ProcedurePatch, get_base_rom_path, write_tokens
-from .Techs import techs_by_id
+from .Techs import techs_by_id, techs_by_name
 from ..AutoWorld import WebWorld, World
 from .Client import PhSt2Client  # type: ignore
 
@@ -122,6 +124,8 @@ class PhSt2World(World):
 
     battle_techs: dict[str, list[int]] = {}
     map_techs: dict[str, list[int]] = {}
+    char_names: list[str] = []
+    char_order: list[Char] = []
 
     @classmethod
     def stage_assert_generate(cls, multiworld: MultiWorld):
@@ -220,8 +224,17 @@ class PhSt2World(World):
             for location in self.get_locations():
                 if not location.item:
                     data = locations_by_name[location.name]
-                    # logger.debug("shuffle: add [%s] to item pool" % data.vanilla_item)
-                    self.multiworld.itempool.append(self.create_item(data.vanilla_item))
+                    if data.fixed_item:
+                        item = self.create_item(data.fixed_item)
+                        # logger.debug('force [%s] at [%s]', name, fixed_location.name)
+                        location.place_locked_item(item)
+                        locked_items.append(item.name)
+                    else:
+                        data = locations_by_name[location.name]
+                        # logger.debug("shuffle: add [%s] to item pool" % data.vanilla_item)
+                        self.multiworld.itempool.append(
+                            self.create_item(data.vanilla_item)
+                        )
 
         else:
             for required in required_items:
@@ -255,11 +268,31 @@ class PhSt2World(World):
         return self.random.choice(filler_item_names)
 
     def generate_early(self):
+        if self.options.randomise_chars.value != CHARS_VANILLA:
+            self.char_order = get_random_char_order(
+                self.random,
+                self.options.randomise_chars.value == CHARS_SHUFFLE_EXCEPT_NEI,
+            )
+            self.char_names = [char.name for char in self.char_order]
+        else:
+            self.char_order = vanilla_characters
+            self.char_names = character_names
+
         if self.options.randomise_techs.value != TECHS_VANILLA:
             self.map_techs, self.battle_techs = get_random_tech_choices(
                 self.random,
+                self.char_order,
                 self.options.randomise_techs.value == TECHS_SENSIBLE_SHUFFLE,
             )
+        else:
+            self.map_techs = {
+                char.name: [techs_by_name[name].id for name in char.get_map_techs()]
+                for char in self.char_order
+            }
+            self.battle_techs = {
+                char.name: [techs_by_name[name].id for name in char.get_battle_techs()]
+                for char in self.char_order
+            }
 
     def generate_output(self, output_directory: str):
         patch = PhSt2ProcedurePatch(
@@ -275,9 +308,14 @@ class PhSt2World(World):
         patch.write(rom_path)
 
     def write_spoiler(self, spoiler_handle: TextIO):
-        if self.battle_techs and self.map_techs:
+        if self.options.randomise_chars.value != CHARS_VANILLA:
+            spoiler_handle.write(
+                f"\n--- Random Character Order: {', '.join(self.char_names)}\n"
+            )
+
+        if self.options.randomise_techs.value != TECHS_VANILLA:
             spoiler_handle.write("\n--- Random Tech Assignments\n")
-            for name in character_names:
+            for name in self.char_names:
                 spoiler_handle.write(f"-- {name}\n")
                 spoiler_handle.write(
                     f"Battle: {', '.join([techs_by_id[id].name for id in self.battle_techs[name]])}\n"

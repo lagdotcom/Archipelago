@@ -70,7 +70,9 @@ game_tokens = {
     "!": 0x44,
     "'": 0x45,
     "-": 0x46,
-    "#": 0x47,  # this is used for . also, not sure why there are two?
+    "·": 0x47,
+    "/": 0x48,
+    "⯆": 0x49,
     ":": 0x77,
     "@CH1": 0xBB,
     "@CH2": 0xBC,
@@ -85,6 +87,85 @@ game_tokens = {
     "<WIN>": 0xC5,
     "<END2>": 0xC6,
     "<END3>": 0xC7,
+}
+
+window_tokens = {
+    " ": 0x26,
+    "A": 0x27,
+    "B": 0x28,
+    "C": 0x29,
+    "D": 0x2A,
+    "E": 0x2B,
+    "F": 0x2C,
+    "G": 0x2D,
+    "H": 0x2E,
+    "I": 0x2F,
+    "J": 0x30,
+    "K": 0x31,
+    "L": 0x32,
+    "M": 0x33,
+    "N": 0x34,
+    "O": 0x35,
+    "P": 0x36,
+    "Q": 0x37,
+    "R": 0x38,
+    "S": 0x39,
+    "T": 0x3A,
+    "U": 0x3B,
+    "V": 0x3C,
+    "W": 0x3D,
+    "X": 0x3E,
+    "Y": 0x3F,
+    "Z": 0x40,
+    "a": 0x41,
+    "b": 0x42,
+    "c": 0x43,
+    "d": 0x44,
+    "e": 0x45,
+    "f": 0x46,
+    "g": 0x47,
+    "h": 0x48,
+    "i": 0x49,
+    "j": 0x4A,
+    "k": 0x4B,
+    "l": 0x4C,
+    "m": 0x4D,
+    "n": 0x4E,
+    "o": 0x4F,
+    "p": 0x50,
+    "q": 0x51,
+    "r": 0x52,
+    "s": 0x53,
+    "t": 0x54,
+    "u": 0x55,
+    "v": 0x56,
+    "w": 0x57,
+    "x": 0x58,
+    "y": 0x59,
+    "z": 0x5A,
+    ",": 0x5B,
+    ".": 0x5C,
+    ";": 0x5D,
+    '"': 0x5E,
+    "?": 0x5F,
+    "!": 0x60,
+    "'": 0x61,
+    "-": 0x62,
+    "·": 0x63,
+    "/": 0x64,
+    "⯆": 0x65,
+    "0": 0x76,
+    "1": 0x77,
+    "2": 0x78,
+    "3": 0x79,
+    "4": 0x7A,
+    "5": 0x7B,
+    "6": 0x7C,
+    "7": 0x7D,
+    "8": 0x7E,
+    "9": 0x7F,
+    "▀": 0xB9,
+    "▄": 0xBE,
 }
 
 
@@ -111,29 +192,29 @@ miscellaneous_messages = [
 ]
 
 
-def translate_message(msg: str):
+def translate_message(msg: str, translation_table: dict[str, int] = game_tokens):
     tokens: list[int] = []
     accumulator = ""
     for ch in msg:
         accumulator += ch
-        if accumulator in game_tokens:
-            tokens.append(game_tokens[accumulator])
+        if accumulator in translation_table:
+            tokens.append(translation_table[accumulator])
             accumulator = ""
     if accumulator:
         raise Exception(f"could not encode, remaining: {accumulator}")
     return bytes(tokens)
 
 
-def translate_block(block: list[str]):
+def translate_block(block: list[str], translation_table: dict[str, int] = game_tokens):
     sizes = [len(block)]
     body = bytes()
     for message in block[:-1]:
-        encoded = translate_message(message)
+        encoded = translate_message(message, translation_table)
         if len(encoded) > 0x255:
             raise Exception("message too long")
         sizes.append(len(encoded))
         body += encoded
-    body += translate_message(block[-1])
+    body += translate_message(block[-1], translation_table)
     return bytes(sizes) + body
 
 

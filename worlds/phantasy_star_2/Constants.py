@@ -39,23 +39,23 @@ ram_names = {
     0xC075: "Nei.item[13]",
     0xC076: "Nei.item[14]",
     0xC077: "Nei.item[15]",
-    0xC0A7: "Rudolf.itemCount",
-    0xC0A8: "Rudolf.item[0]",
-    0xC0A9: "Rudolf.item[1]",
-    0xC0AA: "Rudolf.item[2]",
-    0xC0AB: "Rudolf.item[3]",
-    0xC0AC: "Rudolf.item[4]",
-    0xC0AD: "Rudolf.item[5]",
-    0xC0AE: "Rudolf.item[6]",
-    0xC0AF: "Rudolf.item[7]",
-    0xC0B0: "Rudolf.item[8]",
-    0xC0B1: "Rudolf.item[9]",
-    0xC0B2: "Rudolf.item[10]",
-    0xC0B3: "Rudolf.item[11]",
-    0xC0B4: "Rudolf.item[12]",
-    0xC0B5: "Rudolf.item[13]",
-    0xC0B6: "Rudolf.item[14]",
-    0xC0B7: "Rudolf.item[15]",
+    0xC0A7: "Rudo.itemCount",
+    0xC0A8: "Rudo.item[0]",
+    0xC0A9: "Rudo.item[1]",
+    0xC0AA: "Rudo.item[2]",
+    0xC0AB: "Rudo.item[3]",
+    0xC0AC: "Rudo.item[4]",
+    0xC0AD: "Rudo.item[5]",
+    0xC0AE: "Rudo.item[6]",
+    0xC0AF: "Rudo.item[7]",
+    0xC0B0: "Rudo.item[8]",
+    0xC0B1: "Rudo.item[9]",
+    0xC0B2: "Rudo.item[10]",
+    0xC0B3: "Rudo.item[11]",
+    0xC0B4: "Rudo.item[12]",
+    0xC0B5: "Rudo.item[13]",
+    0xC0B6: "Rudo.item[14]",
+    0xC0B7: "Rudo.item[15]",
     0xC0E7: "Amy.itemCount",
     0xC0E8: "Amy.item[0]",
     0xC0E9: "Amy.item[1]",
@@ -359,6 +359,8 @@ rom_version = StrSpan(ROM, 0x18C, 2)
 
 CHECKSUM_FAILED_JUMP = 0x250
 
+BATTLE_CHAR_OBJECTS = 0x9CA
+
 MOVE_NEGATIVE = [0x3868, 0x38C8, 0x397C, 0x39B0]
 MOVE_POSITIVE = [0x388E, 0x38EE, 0x3992, 0x39C6]
 MOVE_FRAME_COUNT = 0x38FE
@@ -367,9 +369,22 @@ JUMP_FOLLOWING_CHARACTER_SPEED = 0x3B26
 
 MOTAVIAN_INIT_DELETE_CHECK = 0x42E8
 
-STARTING_MESETA_AMOUNT = 0x8A58
+rolf_portrait_op = IntSpan(ROM, 0x82F2, 4)
+rolf_portrait_palette_op = IntSpan(ROM, 0x82FB, 1)
+
+PORTRAITS_LIST = 0x8440
+
+starting_meseta_amount = IntSpan(ROM, 0x8A58, 4)
+
+INITIAL_CHAR_NAMES = 0x8B1A
+INITIAL_CHAR_SETUP = 0x8B3A
+CHAR_INTRO_TEXT_START = 0xB3A4
+CHAR_RENAME_TEXT_ID = 0xB3AA
 
 JUMP_FIX_RECORDER_LOOP_CT_OUTSIDE = 0xC072
+JUMP_SET_RECORDER_FLAG = 0xC4E2
+JUMP_SET_MUSIK_FLAG = 0xC7F6
+JUMP_SET_LEAF_FLAG = 0xC960
 JUMP_FIX_RECORDER_LOOP_GOVERNOR = 0xC9BE
 
 JUMP_GET_CARD = 0xDC22
@@ -386,15 +401,24 @@ TREASURE_CHEST_CONTENT_ARRAY = 0xE8C2
 #   if high bit of word set, item id
 #   otherwise, meseta amount
 
-JUMP_SET_RECORDER_FLAG = 0xC4E2
-JUMP_SET_MUSIK_FLAG = 0xC7F6
-JUMP_SET_LEAF_FLAG = 0xC960
 JUMP_APPLY_XP_MULTIPLIER = 0xF2BE
 JUMP_APPLY_MESETA_MULTIPLIER = 0xF30E
+
+JOB_LIST = 0x11456
 
 TECH_LEARN_TABLES = 0x1150E
 
 ENCOUNTER_RATE_SHIFT = 0x117DA
+
+WALK_SPRITE_LIST = 0x118C8
+
+ITEM_DATA_LIST = 0x12D68
+
+WINDOW_DATA_LIST = 0x13760
+
+ROLF_PROFILE = 0x13FBC
+
+ROLF_EXP_TABLE = 0x161BE
 
 MISC_MESSAGES = 0x22BE4
 
@@ -403,7 +427,7 @@ ENEMY_DATA_ARRAY = 0x2409A
 #   xp at 35-36
 #   meseta at 37-38
 
-PATCH_MULWW = 0xBF6FC
+PATCH_MUL_WW = 0xBF6FC
 PATCH_APPLY_XP_MULTIPLIER = 0xBF724
 PATCH_APPLY_MESETA_MULTIPLIER = 0xBF736
 PATCH_SET_MUSIK_FLAG = 0xBF756
