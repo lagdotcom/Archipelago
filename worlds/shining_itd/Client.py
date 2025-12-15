@@ -147,7 +147,7 @@ class SITDClient(BizHawkClient):
                 return
             await self.reset_inventory_full_message(ctx)
 
-            item_id = self.items_queue.pop()
+            item_id = self.items_queue.popleft()
             item = items_by_id[item_id]
             if item.code is None:
                 logger.warning(
@@ -157,6 +157,7 @@ class SITDClient(BizHawkClient):
                     logger.debug(f'Received item {item.name}')
                 else:
                     self.items_queue.append(item_id)
+                    return  # leave it until next tick
 
     async def process_pending_gold(self, ctx: 'BizHawkClientContext'):
         amount = self.gold_pending

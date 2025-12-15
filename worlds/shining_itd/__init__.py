@@ -189,7 +189,7 @@ class SITDWorld(World):
         if options.useful_items.value > 0:
             useful = useful_item_names[:]
             useful_count = min(
-                int(remaining * 100 // options.useful_items.value), len(useful))
+                int(remaining * options.useful_items.value // 100), len(useful))
             self.random.shuffle(useful)
             for name in useful[:useful_count]:
                 # logger.debug('useful: add [%s] to item pool', name)
