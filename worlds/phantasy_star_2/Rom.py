@@ -60,7 +60,7 @@ from .Constants import (
     WINDOW_DATA_LIST,
 )
 from .Data.Types import EquipSlot
-from .Items import all_items, items_by_id, items_by_name, ItemType
+from .Items import items_by_id, items_by_name
 from .Options import (
     CHARS_VANILLA,
     ENCOUNTER_DOUBLE,
@@ -1138,11 +1138,11 @@ def write_tokens(
     )
 
     # patch characters
-    if world.options.randomise_chars.value != CHARS_VANILLA:
+    if world.write_chars:
         name_bytes = bytes()
         job_bytes = bytes()
         profile_bytes = bytes()
-        item_bytes = bytes()
+        setup_bytes = bytes()
         level_bytes = bytes()
         portrait_bytes = bytes()
         walk_bytes = bytes()
@@ -1157,7 +1157,7 @@ def write_tokens(
             name_bytes += translate_message(name)
             job_bytes += translate_message(ch.job, window_tokens)
             profile_bytes += format_profile(ch)
-            item_bytes += get_initial_setup_bytes(ch)
+            setup_bytes += get_initial_setup_bytes(ch)
             level_bytes += get_level_bytes(ch)
             if ch != first:
                 portrait_bytes += ch.portrait.portrait_bytes()
@@ -1169,7 +1169,7 @@ def write_tokens(
         patch.write_token(APTokenTypes.WRITE, INITIAL_CHAR_NAMES, name_bytes)
         patch.write_token(APTokenTypes.WRITE, JOB_LIST, job_bytes)
         patch.write_token(APTokenTypes.WRITE, ROLF_PROFILE, profile_bytes)
-        patch.write_token(APTokenTypes.WRITE, INITIAL_CHAR_SETUP, item_bytes)
+        patch.write_token(APTokenTypes.WRITE, INITIAL_CHAR_SETUP, setup_bytes)
         patch.write_token(APTokenTypes.WRITE, ROLF_EXP_TABLE, level_bytes)
         patch.write_token(APTokenTypes.WRITE, PORTRAITS_LIST, portrait_bytes)
         patch.write_token(APTokenTypes.WRITE, WALK_SPRITE_LIST, walk_bytes)
@@ -1184,18 +1184,20 @@ def write_tokens(
             rolf_portrait_palette_op.address,
             rolf_portrait_palette_op.format(first.portrait.palette_id.value),
         )
-        # patch item compatibilities
-        for item in all_items:
-            if item.type != ItemType.ITEM or item.code == None:
-                continue
+
+    if world.write_items:
+        if len(world.item_data) != 128:
+            raise Exception(f"world.item_data is {len(world.item_data)} long")
+        item_bytes = bytes()
+        for item in world.item_data:
             mask = 1
             who = 0
             for ch in world.char_order:
                 if item.name in ch.can_equip:
                     who |= mask
                 mask <<= 1
-            addr = ITEM_DATA_LIST + item.code * 0x10 + 13
-            patch.write_token(APTokenTypes.WRITE, addr, bytes([who]))
+            item_bytes += item.get_data_bytes(who)
+        patch.write_token(APTokenTypes.WRITE, ITEM_DATA_LIST, item_bytes)
 
     # patch tech learn lists
     if (
@@ -1265,13 +1267,13 @@ def get_initial_setup_bytes(ch: Char):
             if data.slot == EquipSlot.NONE:
                 raise Exception(f"cannot equip {data.name}")
             slot = data.slot
-            if slot == EquipSlot.TWO_HAND:
+            if slot == EquipSlot.TwoHand:
                 equipped[1] = data.code
                 equipped[2] = data.code
-            elif slot == EquipSlot.HAND and i.other_hand:
+            elif slot == EquipSlot.OneHand and i.other_hand:
                 equipped[2] = data.code
             else:
-                equipped[slot.value] = data.code
+                equipped[slot.value - 1] = data.code
             inventory[ii] = data.code | 0x80
         else:
             data = items_by_name[i]

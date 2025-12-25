@@ -4,17 +4,19 @@ import settings
 
 from typing import Any, Callable, ClassVar, Iterable, Optional, Sequence, TextIO, Tuple
 from BaseClasses import CollectionState, Item, Location, MultiWorld, Region, Tutorial
-from .Characters import Char, character_names, vanilla_characters
+from .Characters import Char, Nei, character_names, vanilla_characters
 from .Constants import game_name
-from .Data import Area
+from .Data import AreaName, ItemName
 from .Goals import get_goal_data
 from .Items import (
     all_items,
     filler_item_names,
     item_name_groups,
+    ItemData,
     items_by_name,
-    useful_item_names,
+    items_with_codes,
     ItemType,
+    useful_item_names,
 )
 from .Locations import all_locations, locations_by_name, location_name_groups
 from .Options import (
@@ -49,7 +51,7 @@ def get_item_type(item: Item):
     if isinstance(item, PhSt2Item):
         return items_by_name[item.name].type
     # TODO if possible to fix NPC dialogue, this can be changed to ITEM for greater rando potential
-    return ItemType.GARBAGE
+    return ItemType.Garbage
 
 
 class PhSt2Settings(settings.Group):
@@ -126,6 +128,9 @@ class PhSt2World(World):
     map_techs: dict[str, list[int]] = {}
     char_names: list[str] = []
     char_order: list[Char] = []
+    write_chars: bool = False
+    item_data: list[ItemData] = []
+    write_items: bool = False
 
     @classmethod
     def stage_assert_generate(cls, multiworld: MultiWorld):
@@ -162,7 +167,7 @@ class PhSt2World(World):
             region.locations.append(loc)
 
         # make connections
-        menu.connect(multiworld.get_region(Area.Motavia, player))
+        menu.connect(multiworld.get_region(AreaName.Motavia, player))
 
         for info in all_regions:
             if not goal.has_region(info.name):
@@ -268,12 +273,16 @@ class PhSt2World(World):
         return self.random.choice(filler_item_names)
 
     def generate_early(self):
+        self.item_data = items_with_codes[:]
+
         if self.options.randomise_chars.value != CHARS_VANILLA:
             self.char_order = get_random_char_order(
                 self.random,
                 self.options.randomise_chars.value == CHARS_SHUFFLE_EXCEPT_NEI,
             )
             self.char_names = [char.name for char in self.char_order]
+            self.write_chars = True
+            self.write_items = True
         else:
             self.char_order = vanilla_characters
             self.char_names = character_names
@@ -284,6 +293,7 @@ class PhSt2World(World):
                 self.char_order,
                 self.options.randomise_techs.value == TECHS_SENSIBLE_SHUFFLE,
             )
+            self.write_chars = True
         else:
             self.map_techs = {
                 char.name: [techs_by_name[name].id for name in char.get_map_techs()]
@@ -293,6 +303,36 @@ class PhSt2World(World):
                 char.name: [techs_by_name[name].id for name in char.get_battle_techs()]
                 for char in self.char_order
             }
+
+        if self.options.lac_dagger.value:
+            item = items_by_name[ItemName.LacDagger]
+            item.at = 45
+            item.df = 7
+            self.write_items = True
+
+        if self.options.nei_better_armour.value:
+            Nei.can_equip.add(ItemName.FiberCape)
+            Nei.can_equip.add(ItemName.TtnmCape)
+            Nei.can_equip.add(ItemName.CrmcCape)
+            Nei.can_equip.add(ItemName.CrystCape)
+            Nei.can_equip.add(ItemName.NeiCape)
+            self.write_items = True
+
+        if self.options.nei_lac_dagger.value:
+            Nei.can_equip.add(ItemName.LacDagger)
+            self.write_items = True
+
+        if self.options.nei_wear_own_stuff.value:
+            Nei.can_equip.add(ItemName.NeiArmor)
+            Nei.can_equip.add(ItemName.NeiCape)
+            Nei.can_equip.add(ItemName.NeiCrown)
+            Nei.can_equip.add(ItemName.NeiEmel)
+            Nei.can_equip.add(ItemName.NeiMet)
+            Nei.can_equip.add(ItemName.NeiShield)
+            Nei.can_equip.add(ItemName.NeiShot)
+            Nei.can_equip.add(ItemName.NeiSlasher)
+            Nei.can_equip.add(ItemName.NeiSword)
+            self.write_items = True
 
     def generate_output(self, output_directory: str):
         patch = PhSt2ProcedurePatch(

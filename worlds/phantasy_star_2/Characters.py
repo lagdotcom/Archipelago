@@ -2,7 +2,7 @@ from enum import IntEnum
 from typing import NamedTuple
 
 
-from .Data import Item as I
+from .Data import ItemName as I
 
 
 ART_PORTRAIT_LIBRARIAN = 0x2D9AA

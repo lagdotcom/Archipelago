@@ -1,7 +1,7 @@
 from typing import Mapping, NamedTuple
 
 from .laglib import StateCheck, always, has, has_all, need_all, need_one
-from .Data import Area as A, Item as I
+from .Data import AreaName as A, ItemName as I
 
 
 class RegionData(NamedTuple):

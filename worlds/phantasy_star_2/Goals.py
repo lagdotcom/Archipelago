@@ -2,7 +2,7 @@ from typing import NamedTuple
 
 from BaseClasses import CollectionState
 
-from .Data import Area as A, Item as I
+from .Data import AreaName as A, ItemName as I
 
 
 class GoalData(NamedTuple):

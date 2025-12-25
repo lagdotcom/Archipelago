@@ -223,7 +223,7 @@ class PhSt2Client(BizHawkClient):
             logger.debug(f"Received {new_count} new items")
             for nwi in ctx.items_received[-new_count:]:
                 item = items_by_id[nwi.item]
-                if item.meseta > 0:
+                if item.meseta is not None:
                     self.mesetas_pending += item.meseta
                 else:
                     self.items_queue.append(nwi.item)

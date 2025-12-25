@@ -38,9 +38,13 @@ def _share(random: Random, pool: list[int], counts: dict[str, int]):
     def remaining(name: str):
         return counts[name] - len(choices[name])
 
-    random.shuffle(pool)
-    for id in pool:
-        valid = [name for name in choices if id not in choices[name]]
+    # assign in frequency order so we don't get stuck
+    tech_freq = {id: pool.count(id) for id in set(pool)}
+    tech_ids = sorted(pool, key=lambda id: tech_freq[id], reverse=True)
+    for id in tech_ids:
+        valid = [
+            name for name in choices if id not in choices[name] and remaining(name) > 0
+        ]
         name = reduce(lambda x, y: x if remaining(x) >= remaining(y) else y, valid)
         choices[name].append(id)
 
@@ -60,6 +64,11 @@ def get_random_tech_choices(random: Random, chars: list[Char], sensible: bool):
             tech_list.sort(key=map_tech_id_to_strength)
         for tech_list in battle_techs.values():
             tech_list.sort(key=map_tech_id_to_strength)
+    else:
+        for tech_list in map_techs.values():
+            random.shuffle(tech_list)
+        for tech_list in battle_techs.values():
+            random.shuffle(tech_list)
     return map_techs, battle_techs
 
 
@@ -67,6 +76,8 @@ def get_random_char_order(random: Random, except_nei: bool):
     chars = vanilla_characters[:]
     random.shuffle(chars)
     if except_nei:
+        if Nei not in chars:
+            raise Exception(f"Nei not in list but has to be second!")
         chars.remove(Nei)
         chars.insert(1, Nei)
     return chars

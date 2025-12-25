@@ -1,6 +1,13 @@
 from dataclasses import dataclass
 
-from Options import Choice, OptionGroup, PerGameCommonOptions, Range
+from Options import (
+    Choice,
+    DefaultOnToggle,
+    OptionGroup,
+    PerGameCommonOptions,
+    Range,
+    Toggle,
+)
 
 from .Goals import GOAL_MOTHER_BRAIN, GOAL_NEIFIRST
 
@@ -104,12 +111,15 @@ CHARS_SHUFFLE_EXCEPT_NEI = 2
 
 class RandomiseCharacters(Choice):
     """
+    WARNING: THIS IS EXPERIMENTAL AND MAY SCREW UP YOUR RUN!
+    USE ONLY AT YOUR OWN RISK.
+
     Vanilla: Characters arrive in the normal order.
     Shuffle: Characters arrive in a random order (Neifirst will always kill second character!)
     Shuffle except Nei: Characters arrive in a random order, but Nei will always be second.
     """
 
-    display_name = "Randomise Characters"
+    display_name = "Randomise Characters (EXPERIMENTAL)"
     default = CHARS_VANILLA
     option_vanilla = CHARS_VANILLA
     option_shuffle = CHARS_SHUFFLE
@@ -146,6 +156,38 @@ class MovementSpeed(Choice):
     option_quadruple = SPEED_QUADRUPLE
 
 
+class LacDagger(DefaultOnToggle):
+    """
+    Change Lac Dagger AT/DF to 45/7 rather than 4/20.
+    """
+
+    display_name = "Lac Dagger fix"
+
+
+class NeiBetterArmour(DefaultOnToggle):
+    """
+    Let Nei wear some better armour.
+    """
+
+    display_name = "Nei Better Armour"
+
+
+class NeiLacDagger(DefaultOnToggle):
+    """
+    Let Nei use the Lac Dagger.
+    """
+
+    display_name = "Nei Lac Dagger"
+
+
+class NeiWearOwnStuff(Toggle):
+    """
+    Let Nei wear all the items with her name in!
+    """
+
+    display_name = "Nei Wear Own Stuff"
+
+
 @dataclass
 class PhSt2Options(PerGameCommonOptions):
     goal: Goal
@@ -158,6 +200,10 @@ class PhSt2Options(PerGameCommonOptions):
     xp_multi: XPMultiplier
     encounter_rate: EncounterRate
     movement_speed: MovementSpeed
+    lac_dagger: LacDagger
+    nei_better_armour: NeiBetterArmour
+    nei_lac_dagger: NeiLacDagger
+    nei_wear_own_stuff: NeiWearOwnStuff
 
 
 option_groups = [
@@ -169,6 +215,10 @@ option_groups = [
     OptionGroup(
         "Quality of Life",
         [MesetaMultiplier, XPMultiplier, EncounterRate, MovementSpeed],
+    ),
+    OptionGroup(
+        "Fixes",
+        [LacDagger, NeiBetterArmour, NeiLacDagger, NeiWearOwnStuff],
     ),
 ]
 
@@ -184,6 +234,10 @@ options_presets = {
         "xp_multi": 1,
         "encounter_rate": ENCOUNTER_NORMAL,
         "movement_speed": SPEED_NORMAL,
+        "lac_dagger": 0,
+        "nei_better_armour": 0,
+        "nei_lac_dagger": 0,
+        "nei_wear_own_stuff": 0,
     },
     "quick neifirst": {
         "goal": GOAL_NEIFIRST,
@@ -196,5 +250,9 @@ options_presets = {
         "xp_multi": 5,
         "encounter_rate": ENCOUNTER_HALF,
         "movement_speed": SPEED_DOUBLE,
+        "lac_dagger": 1,
+        "nei_better_armour": 1,
+        "nei_lac_dagger": 1,
+        "nei_wear_own_stuff": 1,
     },
 }

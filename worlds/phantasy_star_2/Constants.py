@@ -153,6 +153,7 @@ ram_names = {
     0xC622: "meseta.3",
     0xC623: "meseta.4",
     0xC641: "mapIndex",
+    0xC701: "SkureB2",
     0xC702: "SkureB1",
     0xC703: "Skure",
     0xC704: "Paseo",

@@ -13,7 +13,7 @@ from .Constants import (
     chest_flags,
     game_mode,
 )
-from .Data import Area as A, Item as I
+from .Data import AreaName as A, ItemName as I
 from .Enums import GameMode
 from .Items import ItemType
 
@@ -93,7 +93,7 @@ def chest(id: int, region_name: str, name: str, chest_index: int, vanilla_item: 
             region_name,
             name,
             vanilla_item,
-            {ItemType.GARBAGE, ItemType.ITEM, ItemType.MONEY, ItemType.FLAG_AS_ITEM},
+            {ItemType.Garbage, ItemType.Item, ItemType.Money, ItemType.FlagAsItem},
         )
         .at(IntSpan(ROM, TREASURE_CHEST_CONTENT_ARRAY + chest_index * 2, 2))
         .flag(chest_flags.address + chest_index)
@@ -109,7 +109,7 @@ def flag(
     predicate: Predicate[int] = equals1,
 ):
     return LocationData(
-        LocationType.FLAG, id, region_name, name, vanilla_item, {ItemType.FLAG}
+        LocationType.FLAG, id, region_name, name, vanilla_item, {ItemType.Flag}
     ).flag(ram_location, predicate)
 
 
@@ -129,7 +129,7 @@ def granted(
             region_name,
             name,
             vanilla_item,
-            {ItemType.ITEM, ItemType.FLAG_AS_ITEM},
+            {ItemType.Item, ItemType.FlagAsItem},
         )
         .at(IntSpan(ROM, rom_address, 1))
         .flag(ram_address, predicate)
