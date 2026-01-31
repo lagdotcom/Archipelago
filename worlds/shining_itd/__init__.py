@@ -1,18 +1,20 @@
 import logging
 import os
-import settings
+from collections.abc import Callable, Sequence
+from typing import Any, ClassVar
 
-from typing import Any, Callable, ClassVar, Optional, Sequence, Tuple
+import settings
 from BaseClasses import CollectionState, Item, Location, MultiWorld, Region, Tutorial
-from .Goals import get_goal_data
-from .Items import all_items, items_by_name, item_name_groups, useful_item_names, filler_item_names
-from .Locations import all_locations, location_name_groups
-from .Names import RegionName
-from .Options import SITDOptions
-from .Regions import all_regions, regions_by_name
-from .Rom import SITD_UE_HASH, SITDProcedurePatch, get_base_rom_path, write_tokens
+
 from ..AutoWorld import WebWorld, World
-from .Client import SITDClient  # type: ignore
+from .client import SITDClient  # type: ignore  # noqa: F401
+from .goals import get_goal_data
+from .items import all_items, filler_item_names, item_name_groups, items_by_name, useful_item_names
+from .locations import all_locations, location_name_groups
+from .Names import region_name
+from .options import SITDOptions
+from .regions import all_regions, regions_by_name
+from .rom import SITD_UE_HASH, SITDProcedurePatch, get_base_rom_path, write_tokens
 
 logger = logging.getLogger("Shining in the Darkness")
 
@@ -28,20 +30,23 @@ class SITDItem(Item):
 class SITDSettings(settings.Group):
     class RomFile(settings.UserFilePath):
         """File name of the Shining in the Darkness US/EU rom"""
+
         copy_to = "Shining in the Darkness (UE) [!].gen"
         description = "Shining in the Darkness ROM File"
-        md5s = [SITD_UE_HASH]
+        md5s: ClassVar[list[str | bytes]] = [SITD_UE_HASH]
 
-        def browse(self: settings.T,
-                   filetypes: Optional[Sequence[Tuple[str,
-                                                      Sequence[str]]]] = None,
-                   **kwargs: Any) -> Optional[settings.T]:
+        def browse(
+            self: settings.T, filetypes: Sequence[tuple[str, Sequence[str]]] | None = None, **kwargs: Any
+        ) -> settings.T | None:
             if not filetypes:
-                file_types = [("GEN", [".gen"]), ("BIN", [".bin"]),
-                              ("SMD", [".smd"]), ("68K", [".68k"]),]
+                file_types = [
+                    ("GEN", [".gen"]),
+                    ("BIN", [".bin"]),
+                    ("SMD", [".smd"]),
+                    ("68K", [".68k"]),
+                ]
                 return super().browse(file_types, **kwargs)
-            else:
-                return super().browse(filetypes, **kwargs)
+            return super().browse(filetypes, **kwargs)
 
     class RomStart(str):
         """
@@ -55,20 +60,23 @@ class SITDSettings(settings.Group):
 
 
 class SITDWeb(WebWorld):
-    tutorials = [Tutorial(
-        "Multiworld Setup Guide",
-        "A guide to setting up the Shining in the Dark randomizer connected to an Archipelago Multiworld",
-        "English",
-        "setup_en.md",
-        "setup/en",
-        ["lagdotcom"]
-    )]
+    tutorials: ClassVar[list[Tutorial]] = [  # type: ignore
+        Tutorial(
+            "Multiworld Setup Guide",
+            "A guide to setting up the Shining in the Dark randomizer connected to an Archipelago Multiworld",
+            "English",
+            "setup_en.md",
+            "setup/en",
+            ["lagdotcom"],
+        )
+    ]
 
 
 class SITDWorld(World):
     """
     Shining in the Darkness is a dungeon crawler in a series full of strategy games.
     """
+
     game = "Shining in the Darkness"
     options_dataclass = SITDOptions
     options: SITDOptions  # type: ignore
@@ -76,10 +84,10 @@ class SITDWorld(World):
     web = SITDWeb()
     required_client_version = (0, 5, 0)
 
-    item_name_to_id = {item.name: item.id for item in all_items}
+    item_name_to_id: ClassVar[dict[str, int]] = {item.name: item.id for item in all_items}
     item_name_groups = item_name_groups
 
-    location_name_to_id = {data.name: data.id for data in all_locations}
+    location_name_to_id: ClassVar[dict[str, int]] = {data.name: data.id for data in all_locations}
     location_name_groups = location_name_groups
 
     # def __init__(self, multiworld: MultiWorld, player: int):
@@ -100,12 +108,12 @@ class SITDWorld(World):
         options = self.options
         goal = get_goal_data(options.goal.value)
 
-        menu = Region(RegionName.Menu, player, multiworld)
+        menu = Region(region_name.Menu, player, multiworld)
         multiworld.regions.append(menu)
 
         # make regions
-        for region_name in goal.region_names:
-            info = regions_by_name[region_name]
+        for name in goal.region_names:
+            info = regions_by_name[name]
             # logger.debug('add region: [%s]', info.name)
             region = Region(info.name, player, multiworld)
             multiworld.regions.append(region)
@@ -119,26 +127,25 @@ class SITDWorld(World):
             loc = SITDLocation(player, info.name, info.id, region)
             if info.required_items:
                 capture = tuple(info.required_items)
-                loc.access_rule = lambda state: state.has_all(capture, player)
+                loc.access_rule = lambda state, req=capture: state.has_all(req, player)
             region.locations.append(loc)
 
         # make connections
-        menu.connect(multiworld.get_region(RegionName.Lab1, player))
+        menu.connect(multiworld.get_region(region_name.Lab1, player))
 
         for info in all_regions:
             if not goal.has_region(info.name):
                 continue
             if len(info.exits):
                 region = multiworld.get_region(info.name, player)
-                for (exit_name, item_lists) in info.exits.items():
+                for exit_name, item_lists in info.exits.items():
                     if not goal.has_region(exit_name):
                         continue
                     # logger.debug('connect [%s] to [%s]', info.name, exit_name)
                     destination = multiworld.get_region(exit_name, player)
-                    region.connect(destination, None,
-                                   self.make_exit_rule(item_lists))
+                    region.connect(destination, None, self.make_exit_rule(item_lists))
 
-    def make_exit_rule(self, item_lists: list[list[str]]) -> Optional[Callable[[CollectionState], bool]]:
+    def make_exit_rule(self, item_lists: list[list[str]]) -> Callable[[CollectionState], bool] | None:
         if len(item_lists) == 0:
             return None
         return lambda state: self.check_exit_rule(state, item_lists)
@@ -151,8 +158,7 @@ class SITDWorld(World):
 
     def set_rules(self):
         goal = get_goal_data(self.options.goal.value)
-        self.multiworld.completion_condition[self.player] = goal.get_completion_function(
-            self.player)
+        self.multiworld.completion_condition[self.player] = goal.get_completion_function(self.player)
 
     def create_item(self, name: str):
         item = items_by_name[name]
@@ -162,6 +168,7 @@ class SITDWorld(World):
         for location_data in all_locations:
             if location_data.fixed_item == name:
                 return location_data
+        return None
 
     def create_items(self):
         options = self.options
@@ -176,8 +183,7 @@ class SITDWorld(World):
             fixed_location = self.get_fixed_location_for_item(name)
             if fixed_location:
                 # logger.debug('force [%s] at [%s]', name, fixed_location.name)
-                self.multiworld.get_location(
-                    fixed_location.name, self.player).place_locked_item(item)
+                self.multiworld.get_location(fixed_location.name, self.player).place_locked_item(item)
             else:
                 # logger.debug('required: add [%s] to item pool', item.name)
                 self.multiworld.itempool.append(item)
@@ -188,8 +194,7 @@ class SITDWorld(World):
 
         if options.useful_items.value > 0:
             useful = useful_item_names[:]
-            useful_count = min(
-                int(remaining * options.useful_items.value // 100), len(useful))
+            useful_count = min(int(remaining * options.useful_items.value // 100), len(useful))
             self.random.shuffle(useful)
             for name in useful[:useful_count]:
                 # logger.debug('useful: add [%s] to item pool', name)
@@ -208,10 +213,10 @@ class SITDWorld(World):
     #     return self.options.as_dict()
 
     def generate_output(self, output_directory: str) -> None:
-        patch = SITDProcedurePatch(player=self.player,
-                                   player_name=self.multiworld.player_name[self.player])
+        patch = SITDProcedurePatch(player=self.player, player_name=self.multiworld.player_name[self.player])
         write_tokens(self, patch, all_locations)
 
         rom_path = os.path.join(
-            output_directory, f"{self.multiworld.get_out_file_name_base(self.player)}{patch.patch_file_ending}")
+            output_directory, f"{self.multiworld.get_out_file_name_base(self.player)}{patch.patch_file_ending}"
+        )
         patch.write(rom_path)

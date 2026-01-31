@@ -1,6 +1,8 @@
 from typing import NamedTuple
 
-from .Enums import ChestContents as C, FloorID as F, Section as S
+from .Enums import ChestContents as C
+from .Enums import FloorID as F
+from .Enums import Section
 
 
 class Chest(NamedTuple):
@@ -8,23 +10,22 @@ class Chest(NamedTuple):
     x: int
     y: int
     contents: C
-    section: S = S.Main
+    section: Section = Section.Main
 
 
 all_chests = [
     Chest(F.LabyrinthL1, 10, 1, C.Herb),
-    Chest(F.LabyrinthL1, 23, 7, C.SmellingSalts, S.NeedTrialOfStrength),
+    Chest(F.LabyrinthL1, 23, 7, C.SmellingSalts, Section.NeedTrialOfStrength),
     Chest(F.LabyrinthL1, 14, 16, C.Gold100),
-    Chest(F.LabyrinthL1, 30, 16, C.Morningstar, S.NeedTrialOfStrength),
-    Chest(F.LabyrinthL1, 18, 18, C.Gold100, S.NeedOrbOfTruth),
-    Chest(F.LabyrinthL1, 24, 20, C.Depoison, S.NeedDwarfKey),
-    Chest(F.LabyrinthL1, 26, 20, C.Herb, S.NeedDwarfKey),
-    Chest(F.LabyrinthL1, 28, 20, C.WisdomSeed, S.NeedDwarfKey),
+    Chest(F.LabyrinthL1, 30, 16, C.Morningstar, Section.NeedTrialOfStrength),
+    Chest(F.LabyrinthL1, 18, 18, C.Gold100, Section.NeedOrbOfTruth),
+    Chest(F.LabyrinthL1, 24, 20, C.Depoison, Section.NeedDwarfKey),
+    Chest(F.LabyrinthL1, 26, 20, C.Herb, Section.NeedDwarfKey),
+    Chest(F.LabyrinthL1, 28, 20, C.WisdomSeed, Section.NeedDwarfKey),
     Chest(F.LabyrinthL1, 14, 21, C.BronzeKnife),
     Chest(F.LabyrinthL1, 4, 22, C.Herb),
     Chest(F.LabyrinthL1, 8, 28, C.Gold50),
     Chest(F.LabyrinthL1, 4, 30, C.Herb),
-
     Chest(F.LabyrinthL2, 11, 5, C.MagicHood),
     Chest(F.LabyrinthL2, 20, 5, C.AngelFeather),
     Chest(F.LabyrinthL2, 17, 9, C.HealerFruit),
@@ -37,20 +38,18 @@ all_chests = [
     Chest(F.LabyrinthL2, 3, 22, C.GreatAxe),
     Chest(F.LabyrinthL2, 7, 22, C.Depoison),
     Chest(F.LabyrinthL2, 25, 23, C.SunArmor),
-    Chest(F.LabyrinthL2, 9, 27, C.BarrierRing, S.NeedCellKey),
-
-    Chest(F.LabyrinthL3, 1, 9, C.LightShield, S.NeedCellKey),
+    Chest(F.LabyrinthL2, 9, 27, C.BarrierRing, Section.NeedCellKey),
+    Chest(F.LabyrinthL3, 1, 9, C.LightShield, Section.NeedCellKey),
     Chest(F.LabyrinthL3, 29, 9, C.LightHelm),
     Chest(F.LabyrinthL3, 30, 17, C.IceStaff),
-    Chest(F.LabyrinthL3, 1, 21, C.StormSword, S.NeedRope),
+    Chest(F.LabyrinthL3, 1, 21, C.StormSword, Section.NeedRope),
     Chest(F.LabyrinthL3, 11, 23, C.HerbWater),
     Chest(F.LabyrinthL3, 16, 23, C.Gold400),
-    Chest(F.LabyrinthL3, 17, 27, C.GreatFlail, S.NeedRope),
-    Chest(F.LabyrinthL3, 24, 27, C.MithrilOre, S.NeedRopeOrCellKey),
+    Chest(F.LabyrinthL3, 17, 27, C.GreatFlail, Section.NeedRope),
+    Chest(F.LabyrinthL3, 24, 27, C.MithrilOre, Section.NeedRopeOrCellKey),
     Chest(F.LabyrinthL3, 1, 28, C.MysticRope),
     Chest(F.LabyrinthL3, 1, 30, C.HealerFruit),
-
-    Chest(F.LabyrinthL4, 11, 5, C.LightBlade, S.NeedOrbOfTruth),
+    Chest(F.LabyrinthL4, 11, 5, C.LightBlade, Section.NeedOrbOfTruth),
     Chest(F.LabyrinthL4, 22, 5, C.ElvenHood),
     Chest(F.LabyrinthL4, 3, 6, C.MiracleHerb),
     Chest(F.LabyrinthL4, 13, 11, C.HealRing),
@@ -63,7 +62,6 @@ all_chests = [
     Chest(F.LabyrinthL4, 30, 25, C.HolyWater),
     Chest(F.LabyrinthL4, 11, 30, C.Endurostaff),
     Chest(F.LabyrinthL4, 21, 30, C.HealerFruit),
-
     Chest(F.LabyrinthL5, 28, 4, C.MithrilOre),
     Chest(F.LabyrinthL5, 9, 5, C.LightArmor),
     Chest(F.LabyrinthL5, 5, 12, C.Gold2000),
@@ -77,7 +75,6 @@ all_chests = [
     Chest(F.LabyrinthL5, 14, 28, C.HandEater),
     Chest(F.LabyrinthL5, 18, 28, C.Gold1000),
     Chest(F.LabyrinthL5, 24, 28, C.MagicRing),
-
     Chest(F.WisdomL1, 13, 1, C.Ghost),
     Chest(F.WisdomL1, 19, 1, C.MithrilOre),
     Chest(F.WisdomL1, 7, 4, C.Map2),
@@ -87,19 +84,17 @@ all_chests = [
     Chest(F.WisdomL1, 10, 23, C.Map1),
     Chest(F.WisdomL1, 14, 23, C.BattleAxe),
     Chest(F.WisdomL1, 20, 25, C.HerbWater),
-    Chest(F.WisdomL1, 30, 27, C.Ghost, S.NeedCellKey),
+    Chest(F.WisdomL1, 30, 27, C.Ghost, Section.NeedCellKey),
     Chest(F.WisdomL1, 6, 29, C.SmellingSalts),
-
     Chest(F.WisdomL2, 28, 3, C.Gold200),
     Chest(F.WisdomL2, 7, 11, C.FireSword),
-
     Chest(F.Truth, 1, 1, C.Chainmail),
     Chest(F.Truth, 15, 1, C.Ghost),
-    Chest(F.Truth, 21, 7, C.RuneKey, S.NeedIdol),
+    Chest(F.Truth, 21, 7, C.RuneKey, Section.NeedIdol),
     Chest(F.Truth, 28, 9, C.BattleAxe),
     Chest(F.Truth, 1, 10, C.HealerFruit),
     Chest(F.Truth, 23, 15, C.Ghost),
-    Chest(F.Truth, 25, 15, C.MagicRing, S.NeedCellKey),
+    Chest(F.Truth, 25, 15, C.MagicRing, Section.NeedCellKey),
     Chest(F.Truth, 9, 18, C.WoodStaff),
     Chest(F.Truth, 13, 18, C.Depoison),
     Chest(F.Truth, 26, 19, C.FalseIdol),
@@ -108,24 +103,21 @@ all_chests = [
     Chest(F.Truth, 1, 22, C.WisdomSeed),
     Chest(F.Truth, 17, 25, C.AngelFeather),
     Chest(F.Truth, 15, 26, C.Ghost),
-
     Chest(F.StrengthL1, 7, 1, C.ChestBeak),
     Chest(F.StrengthL1, 9, 1, C.WisdomSeed),
     Chest(F.StrengthL1, 20, 4, C.WisdomSeed),
-    Chest(F.StrengthL1, 20, 6, C.ForbiddenBox, S.NeedCellKey),
+    Chest(F.StrengthL1, 20, 6, C.ForbiddenBox, Section.NeedCellKey),
     Chest(F.StrengthL1, 30, 7, C.ShortSword),
     Chest(F.StrengthL1, 1, 14, C.ChestBeak),
     Chest(F.StrengthL1, 12, 17, C.WisdomSeed),
     Chest(F.StrengthL1, 16, 17, C.Depoison),
     Chest(F.StrengthL1, 3, 21, C.Herb),
-    Chest(F.StrengthL1, 10, 21, C.MithrilOre, S.NeedRope),
+    Chest(F.StrengthL1, 10, 21, C.MithrilOre, Section.NeedRope),
     Chest(F.StrengthL1, 3, 25, C.ChestBeak),
     Chest(F.StrengthL1, 13, 28, C.Gold100),
     Chest(F.StrengthL1, 15, 28, C.SmellingSalts),
     Chest(F.StrengthL1, 30, 30, C.WovenRobe),
-
     Chest(F.SharedL2, 10, 12, C.HealerFruit),
-
     Chest(F.CourageL1, 12, 1, C.WisdomSeed),
     Chest(F.CourageL1, 9, 7, C.Gold50),
     Chest(F.CourageL1, 10, 11, C.Gold100),
@@ -135,7 +127,7 @@ all_chests = [
     Chest(F.CourageL1, 5, 15, C.ChestBeak),
     Chest(F.CourageL1, 7, 15, C.Morningstar),
     Chest(F.CourageL1, 11, 15, C.Depoison),
-    Chest(F.CourageL1, 15, 19, C.DemonStaff, S.NeedCellKey),
+    Chest(F.CourageL1, 15, 19, C.DemonStaff, Section.NeedCellKey),
     Chest(F.CourageL1, 1, 21, C.BronzeShield),
     Chest(F.CourageL1, 28, 21, C.WisdomSeed),
     Chest(F.CourageL1, 11, 23, C.SmellingSalts),
