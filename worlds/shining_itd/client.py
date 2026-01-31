@@ -1,6 +1,6 @@
 import logging
 from collections import deque
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, NamedTuple
 
 import worlds._bizhawk as bizhawk
 from NetUtils import ClientStatus
@@ -10,35 +10,50 @@ if TYPE_CHECKING:
     from worlds._bizhawk.context import BizHawkClientContext
 
 from .constants import (
-    ALL_FLAG_LEN,
-    ALL_FLAG_START,
-    GOAL_SPACE,
-    GOLD_LENGTH,
-    GOLD_START,
-    HERO_MAX_HP_LENGTH,
-    HERO_MAX_HP_START,
-    INVENTORY_LENGTH,
-    INVENTORY_START,
-    NAME_SPACE,
-    NAME_SPACE_LEN,
-    ROM_INTERNATIONAL_NAME,
-    ROM_VERSION,
+    chest_flags_span,
+    game_name,
+    goal_space,
+    gold_span,
+    hero_max_hp_span,
+    inventory_span,
+    name_space,
+    quest_flags_span,
+    ram_names,
+    received_item_storage,
+    rom_international_name,
+    rom_version,
 )
 from .goals import get_goal_data
 from .items import items_by_id
+from .laglib import IntSpan, MemoryManager
+from .laglib import genesis_ram as ram
 from .locations import all_locations, locations_by_id
 
 logger = logging.getLogger("Client")
 
 
+class InventorySlot(NamedTuple):
+    char_name: str
+    address: int
+
+
+class Inventory(NamedTuple):
+    char_name: str
+    start_address: int
+    size: int
+
+    def slot(self, index: int):
+        return InventorySlot(self.char_name, self.start_address + index)
+
+
+inventories = [Inventory("Hero", 0x16EA, 16), Inventory("Milo", 0x16FA, 16), Inventory("Pyra", 0x170A, 16)]
+
+
 class SITDClient(BizHawkClient):
-    game = "Shining in the Darkness"
+    game = game_name
     system = "GEN"
     patch_suffix = ".apsitd"
-    rom = "MD CART"
-    ram = "68K RAM"
 
-    items_received: int
     items_queue: deque[int]
     gold_pending: int
     prev_flags = None
@@ -46,26 +61,40 @@ class SITDClient(BizHawkClient):
 
     def __init__(self):
         super().__init__()
-        self.items_received = 0
         self.items_queue = deque()
         self.gold_pending = 0
         self.showing_inventory_full_message = False
+        self.mem = MemoryManager(ram_names)
+        self.mem.spans += [
+            quest_flags_span,
+            chest_flags_span,
+            inventory_span,
+            gold_span,
+            hero_max_hp_span,
+        ]
 
     async def validate_rom(self, ctx: "BizHawkClientContext"):
+        goal_num = -1
         try:
-            blocks = await bizhawk.read(
-                ctx.bizhawk_ctx,
+            [name_raw, version_raw, goal_raw] = await self.mem.request(
+                ctx,
                 [
-                    (ROM_INTERNATIONAL_NAME, 32, self.rom),
-                    (ROM_VERSION, 2, self.rom),
+                    rom_international_name,
+                    rom_version,
+                    goal_space,
                 ],
             )
-            rom_name = blocks[0].decode("ascii")
-            version = blocks[1].decode("ascii")
-        except (UnicodeDecodeError, bizhawk.RequestFailedError, bizhawk.NotConnectedError):
+            name = rom_international_name.parse(name_raw)
+            version = rom_version.parse(version_raw)
+            goal_num = goal_space.parse(goal_raw)
+        except (
+            UnicodeDecodeError,
+            bizhawk.RequestFailedError,
+            bizhawk.NotConnectedError,
+        ):
             return False
 
-        if rom_name != "SHINING IN          THE DARKNESS":
+        if name != "SHINING IN          THE DARKNESS":
             logger.error("Selected ROM is not Shining in the Darkness")
             return False
         if version != "00":
@@ -76,11 +105,12 @@ class SITDClient(BizHawkClient):
         ctx.items_handling = 0b101  # other, own, starting
         ctx.want_slot_data = True
         self.items_queue.clear()
+        self.goal = get_goal_data(goal_num)
         return True
 
     async def set_auth(self, ctx: "BizHawkClientContext"):
-        auth_raw = await self.read_rom(ctx, NAME_SPACE, NAME_SPACE_LEN)
-        ctx.auth = auth_raw.split(b"\0")[0].decode("utf-8")
+        [auth_raw] = await self.mem.request(ctx, [name_space])
+        ctx.auth = name_space.parse(auth_raw)
 
     async def game_watcher(self, ctx: "BizHawkClientContext"):
         if ctx.server is None:
@@ -89,6 +119,7 @@ class SITDClient(BizHawkClient):
             return
 
         try:
+            await self.mem.update(ctx)
             await self.location_check(ctx)
             await self.received_items_check(ctx)
             await self.process_item_queue(ctx)
@@ -97,17 +128,16 @@ class SITDClient(BizHawkClient):
         except bizhawk.RequestFailedError:
             pass
 
-    async def location_check(self, ctx: "BizHawkClientContext"):
-        flags_data = await self.read_ram(ctx, ALL_FLAG_START, ALL_FLAG_LEN)
-        if not flags_data:
-            return
+    def is_playing(self):
+        return hero_max_hp_span.get(self.mem) > 0
 
-        self.debug_flag_changes(flags_data)
+    async def location_check(self, ctx: "BizHawkClientContext"):
+        flags_data = self.mem.get_bytes(quest_flags_span)
 
         locations_checked = set[int]()
         for loc_id in ctx.missing_locations:
             data = locations_by_id[loc_id]
-            byte = flags_data[data.check_address - ALL_FLAG_START]
+            byte = flags_data[data.check_address - quest_flags_span.address]
             if byte & data.check_mask == data.check_mask:
                 locations_checked.add(loc_id)
 
@@ -120,7 +150,12 @@ class SITDClient(BizHawkClient):
             )
 
     async def received_items_check(self, ctx: "BizHawkClientContext"):
-        new_count = len(ctx.items_received) - self.items_received
+        if not self.is_playing():
+            return
+
+        items_sent = received_item_storage.get(self.mem)
+        items_received = len(ctx.items_received)
+        new_count = items_received - items_sent
         if new_count > 0:
             logger.debug(f"Received {new_count} new items")
             for nwi in ctx.items_received[-new_count:]:
@@ -130,16 +165,17 @@ class SITDClient(BizHawkClient):
                 else:
                     self.items_queue.append(nwi.item)
                 logger.debug(f"... got {item.name}")
-            self.items_received = len(ctx.items_received)
+            await self.mem.write_span(ctx, received_item_storage, items_received)
 
-    async def get_empty_inventory_slot(self, ctx: "BizHawkClientContext"):
+    def get_empty_inventory_slot(self):
         # TODO don't try to give items to party members we don't have yet
-        inventory = await self.read_ram(ctx, INVENTORY_START, INVENTORY_LENGTH)
-        for i in range(1, 48, 2):
-            existing = inventory[i]
-            if existing == 0xFF:
-                return INVENTORY_START + i, bytes([existing])
-        return None, None
+        for inv in inventories:
+            for index in range(inv.size):
+                slot = inv.slot(index)
+                contents = self.mem.get(ram, slot.address)
+                if contents == 0xFF:
+                    return slot
+        return None
 
     async def show_inventory_full_message(self, ctx: "BizHawkClientContext"):
         if not self.showing_inventory_full_message:
@@ -149,29 +185,24 @@ class SITDClient(BizHawkClient):
     async def reset_inventory_full_message(self, ctx: "BizHawkClientContext"):
         self.showing_inventory_full_message = False
 
-    async def not_in_game(self, ctx: "BizHawkClientContext"):
-        hp = int.from_bytes(await self.read_ram(ctx, HERO_MAX_HP_START, HERO_MAX_HP_LENGTH), "big")
-        return hp == 0
-
     async def process_item_queue(self, ctx: "BizHawkClientContext"):
-        if await self.not_in_game(ctx):
+        if not self.is_playing():
             return
 
         while len(self.items_queue):
-            address, expected = await self.get_empty_inventory_slot(ctx)
-            if address is None or expected is None:
-                await self.show_inventory_full_message(ctx)
-                return
-            await self.reset_inventory_full_message(ctx)
-
             item_id = self.items_queue.popleft()
             item = items_by_id[item_id]
             if item.code is None:
                 logger.warning(f"Don't know how to reward non-code item: {item.name}")
             else:
-                if await bizhawk.guarded_write(
-                    ctx.bizhawk_ctx, [(address, bytes([item.code]), self.ram)], [(address, expected, self.ram)]
-                ):
+                slot = self.get_empty_inventory_slot()
+                if slot is None:
+                    await self.show_inventory_full_message(ctx)
+                    return
+                await self.reset_inventory_full_message(ctx)
+
+                if await self.mem.write_span(ctx, IntSpan(ram, slot.address, 1), item.code):
+                    await bizhawk.display_message(ctx.bizhawk_ctx, f"{slot.char_name} received item: {item.name}")
                     logger.debug(f"Received item {item.name}")
                 else:
                     self.items_queue.append(item_id)
@@ -179,47 +210,24 @@ class SITDClient(BizHawkClient):
 
     async def process_pending_gold(self, ctx: "BizHawkClientContext"):
         amount = self.gold_pending
-        if not amount:
-            return
-        if await self.not_in_game(ctx):
+        if not amount or not self.is_playing():
             return
 
-        address = GOLD_START
-        old_bytes = await self.read_ram(ctx, GOLD_START, GOLD_LENGTH)
-        old_gold = int.from_bytes(old_bytes, "big")
+        old_gold = gold_span.get(self.mem)
         new_gold = min(9_999_999, old_gold + amount)
-        new_bytes = new_gold.to_bytes(4, "big")
 
         logger.debug(f"Trying to send {amount} gold ({old_gold} -> {new_gold})")
-        if await bizhawk.guarded_write(
-            ctx.bizhawk_ctx, [(address, new_bytes, self.ram)], [(address, old_bytes, self.ram)]
-        ):
+        if await self.mem.write_span(ctx, gold_span, new_gold):
             self.gold_pending = 0
             await bizhawk.display_message(ctx.bizhawk_ctx, f"Received {amount} gold")
 
     async def met_goal_check(self, ctx: "BizHawkClientContext"):
         if ctx.finished_game:
             return
-        goal_id = (await self.read_rom(ctx, GOAL_SPACE, 1))[0]
-        goal = get_goal_data(goal_id)
-        goal_locations = [loc for loc in all_locations if loc.fixed_item in goal.completion_item_names]
+
+        goal_locations = [loc for loc in all_locations if loc.fixed_item in self.goal.completion_item_names]
         for location in goal_locations:
             if location.id not in ctx.checked_locations:
                 return
         await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
         ctx.finished_game = True
-
-    async def read_ram(self, ctx: "BizHawkClientContext", location: int, size: int):
-        return (await bizhawk.read(ctx.bizhawk_ctx, [(location, size, self.ram)]))[0]
-
-    async def read_rom(self, ctx: "BizHawkClientContext", location: int, size: int):
-        return (await bizhawk.read(ctx.bizhawk_ctx, [(location, size, self.rom)]))[0]
-
-    def debug_flag_changes(self, flags_data: bytes):
-        if self.prev_flags:
-            for i in range(len(flags_data)):
-                ol = self.prev_flags[i]
-                nu = flags_data[i]
-                if ol != nu:
-                    logger.debug(f"Flag {ALL_FLAG_START + i:04x}: {ol:02x} -> {nu:02x} ({ol ^ nu:02x} flipped)")
-        self.prev_flags = flags_data

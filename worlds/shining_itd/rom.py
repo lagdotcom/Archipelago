@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any, ClassVar
 
 from worlds.Files import APProcedurePatch, APTokenMixin, APTokenTypes
 
-from .constants import GOAL_SPACE, NAME_SPACE, NAME_SPACE_LEN
+from .constants import game_name, goal_space, name_space
 from .items import items_by_id
 
 if TYPE_CHECKING:
@@ -46,7 +46,7 @@ GIVE_ITEM_TO_ANY_PC_AP_ITEM = 0x5A180
 
 
 class SITDProcedurePatch(APProcedurePatch, APTokenMixin):
-    game = "Shining in the Darkness"
+    game = game_name
     hash = SITD_UE_HASH
     patch_file_ending = ".apsitd"
     result_file_ending = ".gen"
@@ -86,12 +86,12 @@ def get_base_rom_path():
 def write_tokens(world: "SITDWorld", patch: SITDProcedurePatch, locations: Iterable["LD"]):
     # write player name
     raw_name = patch.player_name.encode("utf-8") + b"\0"
-    if len(raw_name) > NAME_SPACE_LEN:
+    if len(raw_name) > name_space.size:
         raise Exception("Name too long!")
-    patch.write_token(APTokenTypes.WRITE, NAME_SPACE, raw_name)
+    patch.write_token(APTokenTypes.WRITE, name_space.address, raw_name)
 
     # write goal number
-    patch.write_token(APTokenTypes.WRITE, GOAL_SPACE, bytes([world.options.goal]))
+    patch.write_token(APTokenTypes.WRITE, goal_space.address, bytes([world.options.goal]))
 
     # patch DoOpenChest
     patch.write_token(

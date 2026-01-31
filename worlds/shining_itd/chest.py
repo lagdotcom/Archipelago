@@ -1,8 +1,8 @@
 from typing import NamedTuple
 
-from .Enums import ChestContents as C
-from .Enums import FloorID as F
-from .Enums import Section
+from .enums import ChestContents as C
+from .enums import FloorID as F
+from .enums import Section
 
 
 class Chest(NamedTuple):

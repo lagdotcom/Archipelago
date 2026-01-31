@@ -8,6 +8,7 @@ from BaseClasses import CollectionState, Item, Location, MultiWorld, Region, Tut
 
 from ..AutoWorld import WebWorld, World
 from .client import SITDClient  # type: ignore  # noqa: F401
+from .constants import game_name
 from .goals import get_goal_data
 from .items import all_items, filler_item_names, item_name_groups, items_by_name, useful_item_names
 from .locations import all_locations, location_name_groups
@@ -16,15 +17,15 @@ from .options import SITDOptions
 from .regions import all_regions, regions_by_name
 from .rom import SITD_UE_HASH, SITDProcedurePatch, get_base_rom_path, write_tokens
 
-logger = logging.getLogger("Shining in the Darkness")
+logger = logging.getLogger(game_name)
 
 
 class SITDLocation(Location):
-    game: str = "Shining in the Darkness"
+    game: str = game_name
 
 
 class SITDItem(Item):
-    game: str = "Shining in the Darkness"
+    game: str = game_name
 
 
 class SITDSettings(settings.Group):
@@ -77,7 +78,7 @@ class SITDWorld(World):
     Shining in the Darkness is a dungeon crawler in a series full of strategy games.
     """
 
-    game = "Shining in the Darkness"
+    game = game_name
     options_dataclass = SITDOptions
     options: SITDOptions  # type: ignore
     settings: ClassVar[SITDSettings]  # type: ignore

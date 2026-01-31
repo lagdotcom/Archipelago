@@ -1,22 +1,24 @@
+from .laglib import IntSpan, StrSpan
+from .laglib import genesis_ram as ram
+from .laglib import genesis_rom as rom
+
+game_name = "Shining in the Darkness"
+
 # RAM addresses
 
+ram_names = {
+    0x1600: "party",
+}
+
 # 1600 changes whenever entering battle, so ignore it for now
-ALL_FLAG_START = 0x1601
-ALL_FLAG_END = 0x1649
-ALL_FLAG_LEN = ALL_FLAG_END - ALL_FLAG_START
+quest_flags_span = IntSpan(ram, 0x1601, 0x1648)
+chest_flags_span = IntSpan(ram, 0x1620, 0x1A)
+inventory_span = IntSpan(ram, 0x16EA, 0x30)
+gold_span = IntSpan(ram, 0x16A4, 4)
+hero_max_hp_span = IntSpan(ram, 0x16B4, 2)
 
-CHEST_FLAG_START = 0x1620
-CHEST_FLAG_END = 0x163A
-
-INVENTORY_START = 0x16EA
-INVENTORY_END = 0x171A
-INVENTORY_LENGTH = INVENTORY_END - INVENTORY_START
-
-GOLD_START = 0x16A4
-GOLD_LENGTH = 4
-
-HERO_MAX_HP_START = 0x16B4
-HERO_MAX_HP_LENGTH = 2
+# TODO find a good place for this
+received_item_storage = IntSpan(ram, 0xC7FE, 2)
 
 # ROM addresses
 
@@ -27,8 +29,8 @@ possibly useful ROM addresses
 ~69E4   item names, enemy names, npc names
 """
 
-ROM_INTERNATIONAL_NAME = 0x150
-ROM_VERSION = 0x18C
+rom_international_name = StrSpan(rom, 0x150, 32)
+rom_version = StrSpan(rom, 0x18C, 2)
 
 
 LAB_L1_CHEST_CONTENTS = 0x84C6
@@ -58,7 +60,5 @@ CHEST_CONTENTS_BY_FLOOR = [
     COURAGE_L1_CHEST_CONTENTS,
 ]
 
-NAME_SPACE = 0xFFF30
-NAME_SPACE_LEN = 0xCF
-
-GOAL_SPACE = 0xFFFFF
+name_space = StrSpan(rom, 0xFFF30, 0xCF, "utf-8")
+goal_space = IntSpan(rom, 0xFFFFF, 1)
