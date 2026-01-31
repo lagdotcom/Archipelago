@@ -1,8 +1,8 @@
 from functools import reduce
 from random import Random
 
-from .Characters import Char, Nei, vanilla_characters
-from .Techs import tech_strengths, techs_by_name
+from .characters import Char, Nei, vanilla_characters
+from .techs import tech_strengths, techs_by_name
 
 
 def get_tech_pools(chars: list[Char]):
@@ -42,9 +42,7 @@ def _share(random: Random, pool: list[int], counts: dict[str, int]):
     tech_freq = {id: pool.count(id) for id in set(pool)}
     tech_ids = sorted(pool, key=lambda id: tech_freq[id], reverse=True)
     for id in tech_ids:
-        valid = [
-            name for name in choices if id not in choices[name] and remaining(name) > 0
-        ]
+        valid = [name for name in choices if id not in choices[name] and remaining(name) > 0]
         name = reduce(lambda x, y: x if remaining(x) >= remaining(y) else y, valid)
         choices[name].append(id)
 
@@ -77,7 +75,7 @@ def get_random_char_order(random: Random, except_nei: bool):
     random.shuffle(chars)
     if except_nei:
         if Nei not in chars:
-            raise Exception(f"Nei not in list but has to be second!")
+            raise Exception("Nei not in list but has to be second!")
         chars.remove(Nei)
         chars.insert(1, Nei)
     return chars

@@ -1,40 +1,43 @@
 import logging
 import os
-import settings
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from types import MappingProxyType
+from typing import Any, ClassVar, TextIO
 
-from typing import Any, Callable, ClassVar, Iterable, Optional, Sequence, TextIO, Tuple
+import settings
 from BaseClasses import CollectionState, Item, Location, MultiWorld, Region, Tutorial
-from .Characters import Char, Nei, character_names, vanilla_characters
-from .Constants import game_name
-from .Data import AreaName, ItemName
-from .Goals import get_goal_data
-from .Items import (
+
+from ..AutoWorld import WebWorld, World
+from .characters import Char, Nei, character_names, vanilla_characters
+from .client import PhSt2Client  # type: ignore  # noqa: F401
+from .constants import game_name
+from .Data import area_name, item_name
+from .goals import get_goal_data
+from .items import (
+    ItemData,
+    ItemType,
     all_items,
     filler_item_names,
     item_name_groups,
-    ItemData,
     items_by_name,
     items_with_codes,
-    ItemType,
     useful_item_names,
 )
-from .Locations import all_locations, locations_by_name, location_name_groups
-from .Options import (
-    PhSt2Options,
-    DIST_SHUFFLE,
+from .locations import all_locations, location_name_groups, locations_by_name
+from .options import (
     CHARS_SHUFFLE_EXCEPT_NEI,
     CHARS_VANILLA,
-    TECHS_VANILLA,
+    DIST_SHUFFLE,
     TECHS_SENSIBLE_SHUFFLE,
+    TECHS_VANILLA,
+    PhSt2Options,
     option_groups,
     options_presets,
 )
-from .Rando import get_random_char_order, get_random_tech_choices
-from .Regions import all_regions, regions_by_name
-from .Rom import REV02_UE_HASH, PhSt2ProcedurePatch, get_base_rom_path, write_tokens
-from .Techs import techs_by_id, techs_by_name
-from ..AutoWorld import WebWorld, World
-from .Client import PhSt2Client  # type: ignore
+from .rando import get_random_char_order, get_random_tech_choices
+from .regions import all_regions, regions_by_name
+from .rom import REV02_UE_HASH, PhSt2ProcedurePatch, get_base_rom_path, write_tokens
+from .techs import techs_by_id, techs_by_name
 
 logger = logging.getLogger(game_name)
 
@@ -60,13 +63,13 @@ class PhSt2Settings(settings.Group):
 
         copy_to = "Phantasy Star II (UE) (REV02) [!].gen"
         description = "Phantasy Star II REV02 ROM File"
-        md5s = [REV02_UE_HASH]
+        md5s: ClassVar[list[str | bytes]] = [REV02_UE_HASH]
 
         def browse(
             self: settings.T,
-            filetypes: Optional[Sequence[Tuple[str, Sequence[str]]]] = None,
+            filetypes: Sequence[tuple[str, Sequence[str]]] | None = None,
             **kwargs: Any,
-        ) -> Optional[settings.T]:
+        ) -> settings.T | None:
             if not filetypes:
                 file_types = [
                     ("GEN", [".gen"]),
@@ -75,8 +78,7 @@ class PhSt2Settings(settings.Group):
                     ("68K", [".68k"]),
                 ]
                 return super().browse(file_types, **kwargs)
-            else:
-                return super().browse(filetypes, **kwargs)
+            return super().browse(filetypes, **kwargs)
 
     class RomStart(str):
         """
@@ -94,7 +96,7 @@ class PhSt2Web(WebWorld):
     option_groups = option_groups
     options_presets = options_presets
 
-    tutorials = [
+    tutorials: ClassVar[list[Tutorial]] = [  # type: ignore
         Tutorial(
             "Multiworld Setup Guide",
             "A guide to setting up the Phantasy Star II randomizer connected to an Archipelago Multiworld",
@@ -118,18 +120,18 @@ class PhSt2World(World):
     web = PhSt2Web()
     required_client_version = (0, 5, 0)
 
-    item_name_to_id = {item.name: item.id for item in all_items}
+    item_name_to_id: ClassVar[dict[str, int]] = {item.name: item.id for item in all_items}
     item_name_groups = item_name_groups
 
-    location_name_to_id = {data.name: data.id for data in all_locations}
+    location_name_to_id: ClassVar[dict[str, int]] = {data.name: data.id for data in all_locations}
     location_name_groups = location_name_groups
 
-    battle_techs: dict[str, list[int]] = {}
-    map_techs: dict[str, list[int]] = {}
-    char_names: list[str] = []
-    char_order: list[Char] = []
+    battle_techs: Mapping[str, list[int]] = MappingProxyType({})
+    map_techs: Mapping[str, list[int]] = MappingProxyType({})
+    char_names: Sequence[str] = ()
+    char_order: Sequence[Char] = ()
     write_chars: bool = False
-    item_data: list[ItemData] = []
+    item_data: Sequence[ItemData] = ()
     write_items: bool = False
 
     @classmethod
@@ -167,7 +169,7 @@ class PhSt2World(World):
             region.locations.append(loc)
 
         # make connections
-        menu.connect(multiworld.get_region(AreaName.Motavia, player))
+        menu.connect(multiworld.get_region(area_name.Motavia, player))
 
         for info in all_regions:
             if not goal.has_region(info.name):
@@ -181,9 +183,7 @@ class PhSt2World(World):
                     destination = multiworld.get_region(exit_name, player)
                     region.connect(destination, None, make_checker(player))
 
-    def get_access_rule(
-        self, items: Iterable[str]
-    ) -> Callable[[CollectionState], bool]:
+    def get_access_rule(self, items: Iterable[str]) -> Callable[[CollectionState], bool]:
         capture = tuple(items)
         return lambda state: state.has_all(capture, self.player)
 
@@ -193,9 +193,7 @@ class PhSt2World(World):
 
     def set_rules(self):
         goal = get_goal_data(self.options.goal.value)
-        self.multiworld.completion_condition[self.player] = (
-            goal.get_completion_function(self.player)
-        )
+        self.multiworld.completion_condition[self.player] = goal.get_completion_function(self.player)
 
     def create_item(self, name: str):
         item = items_by_name[name]
@@ -205,6 +203,7 @@ class PhSt2World(World):
         for location_data in all_locations:
             if location_data.fixed_item == name:
                 return location_data
+        return None
 
     def create_items(self):
         options = self.options
@@ -237,27 +236,19 @@ class PhSt2World(World):
                     else:
                         data = locations_by_name[location.name]
                         # logger.debug("shuffle: add [%s] to item pool" % data.vanilla_item)
-                        self.multiworld.itempool.append(
-                            self.create_item(data.vanilla_item)
-                        )
+                        self.multiworld.itempool.append(self.create_item(data.vanilla_item))
 
         else:
             for required in required_items:
                 # logger.debug("required: add [%s] to item pool", required)
                 self.multiworld.itempool.append(self.create_item(required))
 
-            remaining = (
-                len(list(self.get_locations()))
-                - len(required_items)
-                - len(locked_items)
-            )
+            remaining = len(list(self.get_locations())) - len(required_items) - len(locked_items)
             # print(f"remaining location count: {remaining}")
 
             if options.useful_items.value > 0:
                 useful = useful_item_names[:]
-                useful_count = min(
-                    int(remaining * options.useful_items.value // 100), len(useful)
-                )
+                useful_count = min(int(remaining * options.useful_items.value // 100), len(useful))
                 self.random.shuffle(useful)
                 for name in useful[:useful_count]:
                     # logger.debug("useful: add [%s] to item pool", name)
@@ -296,48 +287,44 @@ class PhSt2World(World):
             self.write_chars = True
         else:
             self.map_techs = {
-                char.name: [techs_by_name[name].id for name in char.get_map_techs()]
-                for char in self.char_order
+                char.name: [techs_by_name[name].id for name in char.get_map_techs()] for char in self.char_order
             }
             self.battle_techs = {
-                char.name: [techs_by_name[name].id for name in char.get_battle_techs()]
-                for char in self.char_order
+                char.name: [techs_by_name[name].id for name in char.get_battle_techs()] for char in self.char_order
             }
 
         if self.options.lac_dagger.value:
-            item = items_by_name[ItemName.LacDagger]
+            item = items_by_name[item_name.LacDagger]
             item.at = 45
             item.df = 7
             self.write_items = True
 
         if self.options.nei_better_armour.value:
-            Nei.can_equip.add(ItemName.FiberCape)
-            Nei.can_equip.add(ItemName.TtnmCape)
-            Nei.can_equip.add(ItemName.CrmcCape)
-            Nei.can_equip.add(ItemName.CrystCape)
-            Nei.can_equip.add(ItemName.NeiCape)
+            Nei.can_equip.add(item_name.FiberCape)
+            Nei.can_equip.add(item_name.TtnmCape)
+            Nei.can_equip.add(item_name.CrmcCape)
+            Nei.can_equip.add(item_name.CrystCape)
+            Nei.can_equip.add(item_name.NeiCape)
             self.write_items = True
 
         if self.options.nei_lac_dagger.value:
-            Nei.can_equip.add(ItemName.LacDagger)
+            Nei.can_equip.add(item_name.LacDagger)
             self.write_items = True
 
         if self.options.nei_wear_own_stuff.value:
-            Nei.can_equip.add(ItemName.NeiArmor)
-            Nei.can_equip.add(ItemName.NeiCape)
-            Nei.can_equip.add(ItemName.NeiCrown)
-            Nei.can_equip.add(ItemName.NeiEmel)
-            Nei.can_equip.add(ItemName.NeiMet)
-            Nei.can_equip.add(ItemName.NeiShield)
-            Nei.can_equip.add(ItemName.NeiShot)
-            Nei.can_equip.add(ItemName.NeiSlasher)
-            Nei.can_equip.add(ItemName.NeiSword)
+            Nei.can_equip.add(item_name.NeiArmor)
+            Nei.can_equip.add(item_name.NeiCape)
+            Nei.can_equip.add(item_name.NeiCrown)
+            Nei.can_equip.add(item_name.NeiEmel)
+            Nei.can_equip.add(item_name.NeiMet)
+            Nei.can_equip.add(item_name.NeiShield)
+            Nei.can_equip.add(item_name.NeiShot)
+            Nei.can_equip.add(item_name.NeiSlasher)
+            Nei.can_equip.add(item_name.NeiSword)
             self.write_items = True
 
     def generate_output(self, output_directory: str):
-        patch = PhSt2ProcedurePatch(
-            player=self.player, player_name=self.multiworld.player_name[self.player]
-        )
+        patch = PhSt2ProcedurePatch(player=self.player, player_name=self.multiworld.player_name[self.player])
 
         write_tokens(self, patch, all_locations)
 
@@ -349,17 +336,11 @@ class PhSt2World(World):
 
     def write_spoiler(self, spoiler_handle: TextIO):
         if self.options.randomise_chars.value != CHARS_VANILLA:
-            spoiler_handle.write(
-                f"\n--- Random Character Order: {', '.join(self.char_names)}\n"
-            )
+            spoiler_handle.write(f"\n--- Random Character Order: {', '.join(self.char_names)}\n")
 
         if self.options.randomise_techs.value != TECHS_VANILLA:
             spoiler_handle.write("\n--- Random Tech Assignments\n")
             for name in self.char_names:
                 spoiler_handle.write(f"-- {name}\n")
-                spoiler_handle.write(
-                    f"Battle: {', '.join([techs_by_id[id].name for id in self.battle_techs[name]])}\n"
-                )
-                spoiler_handle.write(
-                    f"Map: {', '.join([techs_by_id[id].name for id in self.map_techs[name]])}\n"
-                )
+                spoiler_handle.write(f"Battle: {', '.join([techs_by_id[id].name for id in self.battle_techs[name]])}\n")
+                spoiler_handle.write(f"Map: {', '.join([techs_by_id[id].name for id in self.map_techs[name]])}\n")

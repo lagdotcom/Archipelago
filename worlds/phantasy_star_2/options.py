@@ -9,7 +9,7 @@ from Options import (
     Toggle,
 )
 
-from .Goals import GOAL_MOTHER_BRAIN, GOAL_NEIFIRST
+from .goals import GOAL_MOTHER_BRAIN, GOAL_NEIFIRST
 
 
 class Goal(Choice):

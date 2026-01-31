@@ -207,7 +207,7 @@ def translate_message(msg: str, translation_table: dict[str, int] = game_tokens)
 
 def translate_block(block: list[str], translation_table: dict[str, int] = game_tokens):
     sizes = [len(block)]
-    body = bytes()
+    body = b""
     for message in block[:-1]:
         encoded = translate_message(message, translation_table)
         if len(encoded) > 0x255:

@@ -135,7 +135,7 @@ Visiphone = "Visiphone"
 Garbage = "Garbage"
 
 
-def Meseta(amount: int):
+def meseta(amount: int):
     return f"{amount} Meseta"
 
 

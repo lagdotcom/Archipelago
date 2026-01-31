@@ -2,17 +2,15 @@ import logging
 from collections import deque
 from typing import TYPE_CHECKING, NamedTuple
 
-from NetUtils import ClientStatus
-
 import worlds._bizhawk as bizhawk
+from NetUtils import ClientStatus
 from worlds._bizhawk.client import BizHawkClient
 
 if TYPE_CHECKING:
     from worlds._bizhawk.context import BizHawkClientContext
 
-from .laglib import MemoryManager, genesis_ram as RAM
-from .Characters import character_names
-from .Constants import (
+from .characters import character_names
+from .constants import (
     chest_flags,
     current_money,
     game_mode,
@@ -34,10 +32,12 @@ from .Constants import (
     # interaction_status,
     # scene_status,
 )
-from .Enums import GameMode  # , MapID, SceneID, ScriptID, WinID
-from .Goals import GoalData, get_goal_data
-from .Items import items_by_id
-from .Locations import all_locations, locations_by_id
+from .enums import GameMode  # , MapID, SceneID, ScriptID, WinID
+from .goals import GoalData, get_goal_data
+from .items import items_by_id
+from .laglib import MemoryManager
+from .laglib import genesis_ram as ram
+from .locations import all_locations, locations_by_id
 
 logger = logging.getLogger("Client")
 
@@ -49,14 +49,14 @@ class InventorySlot(NamedTuple):
 
     def guard_list(self):
         return [
-            (self.count_address, bytes([self.used]), RAM),
-            (self.count_address + self.used + 1, bytes([0]), RAM),
+            (self.count_address, bytes([self.used]), ram),
+            (self.count_address + self.used + 1, bytes([0]), ram),
         ]
 
     def write_list(self, item_id: int):
         return [
-            (self.count_address, bytes([self.used + 1]), RAM),
-            (self.count_address + self.used + 1, bytes([item_id]), RAM),
+            (self.count_address, bytes([self.used + 1]), ram),
+            (self.count_address + self.used + 1, bytes([item_id]), ram),
         ]
 
 
@@ -78,24 +78,22 @@ class PhSt2Client(BizHawkClient):
         self.mesetas_pending = 0
         self.showing_inventory_full_message = False
         self.mem = MemoryManager(ram_names)
-        self.mem.spans += (
-            [
-                chest_flags,
-                current_money,
-                game_mode,
-                opening_ending_flag,
-                party_size,
-                quest_flags,
-                received_item_storage,
-                # map_index,
-                # script_status,
-                # window_status,
-                # interaction_status,
-                # scene_status,
-            ]
-            + party_composition
-            + party_inventories
-        )
+        self.mem.spans += [
+            chest_flags,
+            current_money,
+            game_mode,
+            opening_ending_flag,
+            party_size,
+            quest_flags,
+            received_item_storage,
+            # map_index,
+            # script_status,
+            # window_status,
+            # interaction_status,
+            # scene_status,
+            *party_composition,
+            *party_inventories,
+        ]
         self.mem.translate(0xF600, GameMode)
         # self.mem.translate(0xC641, MapID)
         # self.mem.translate(0xCD00, ScriptID)
@@ -200,9 +198,8 @@ class PhSt2Client(BizHawkClient):
             inventory = self.mem.get_bytes(inv_span)
             used_slots = inventory[0]
             if used_slots < 16:
-                return InventorySlot(
-                    character_names[char_id], inv_span.address, used_slots
-                )
+                return InventorySlot(character_names[char_id], inv_span.address, used_slots)
+        return None
 
     async def show_inventory_full_message(self, ctx: "BizHawkClientContext"):
         if not self.showing_inventory_full_message:
@@ -239,9 +236,7 @@ class PhSt2Client(BizHawkClient):
             item = items_by_id[item_id]
             if item.ram_flag:
                 if await self.mem.write_span(ctx, item.ram_flag, item.ram_value):
-                    await bizhawk.display_message(
-                        ctx.bizhawk_ctx, f"Received item: {item.name}"
-                    )
+                    await bizhawk.display_message(ctx.bizhawk_ctx, f"Received item: {item.name}")
                     logger.debug(f"Received flag-item {item.name}")
                 else:
                     self.items_queue.append(item_id)
@@ -255,12 +250,8 @@ class PhSt2Client(BizHawkClient):
                     continue
                 await self.reset_inventory_full_message(ctx)
 
-                if await self.mem.write_list(
-                    ctx, slot.write_list(item.code), slot.guard_list()
-                ):
-                    await bizhawk.display_message(
-                        ctx.bizhawk_ctx, f"{slot.char_name} received item: {item.name}"
-                    )
+                if await self.mem.write_list(ctx, slot.write_list(item.code), slot.guard_list()):
+                    await bizhawk.display_message(ctx.bizhawk_ctx, f"{slot.char_name} received item: {item.name}")
                     logger.debug(f"Received item {item.name}")
                 else:
                     self.items_queue.append(item_id)
@@ -283,13 +274,9 @@ class PhSt2Client(BizHawkClient):
         if ctx.finished_game:
             return
 
-        goal_locations = [
-            l for l in all_locations if l.fixed_item in self.goal.completion_item_names
-        ]
+        goal_locations = [loc for loc in all_locations if loc.fixed_item in self.goal.completion_item_names]
         for location in goal_locations:
-            if not location.id in ctx.checked_locations:
-                return False
-        await ctx.send_msgs(
-            [{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}]
-        )
+            if location.id not in ctx.checked_locations:
+                return
+        await ctx.send_msgs([{"cmd": "StatusUpdate", "status": ClientStatus.CLIENT_GOAL}])
         ctx.finished_game = True

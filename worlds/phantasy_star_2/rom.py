@@ -1,17 +1,16 @@
 import hashlib
-from typing import Iterable, TYPE_CHECKING
+from collections.abc import Iterable
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from worlds.Files import APProcedurePatch, APTokenMixin, APTokenTypes
 
-from .Characters import Char, Equipped
-from .Constants import (
+from .characters import Char, Equipped
+from .constants import (
     BATTLE_CHAR_OBJECTS,
     # TODO CHAR_INTRO_TEXT_START,
     # TODO CHAR_RENAME_TEXT_ID,
     CHECKSUM_FAILED_JUMP,
     ENCOUNTER_RATE_SHIFT,
-    game_name,
-    goal_space,
     INITIAL_CHAR_NAMES,
     INITIAL_CHAR_SETUP,
     ITEM_DATA_LIST,
@@ -33,7 +32,6 @@ from .Constants import (
     MOVE_FRAME_COUNT,
     MOVE_NEGATIVE,
     MOVE_POSITIVE,
-    name_space,
     PATCH_ADD_ITEM,
     PATCH_ADD_ITEM2_REARRANGE,
     PATCH_APPLY_MESETA_MULTIPLIER,
@@ -51,17 +49,27 @@ from .Constants import (
     PATCH_SET_RECORDER_FLAG,
     PORTRAITS_LIST,
     ROLF_EXP_TABLE,
-    rolf_portrait_op,
-    rolf_portrait_palette_op,
     ROLF_PROFILE,
-    starting_meseta_amount,
     TECH_LEARN_TABLES,
     WALK_SPRITE_LIST,
     WINDOW_DATA_LIST,
+    game_name,
+    goal_space,
+    name_space,
+    rolf_portrait_op,
+    rolf_portrait_palette_op,
+    starting_meseta_amount,
 )
-from .Data.Types import EquipSlot
-from .Items import items_by_id, items_by_name
-from .Options import (
+from .Data.types import EquipSlot
+from .items import items_by_id, items_by_name
+from .locations import LocationType
+from .messages import (
+    miscellaneous_messages,
+    translate_block,
+    translate_message,
+    window_tokens,
+)
+from .options import (
     CHARS_VANILLA,
     ENCOUNTER_DOUBLE,
     ENCOUNTER_EIGHTH,
@@ -72,18 +80,10 @@ from .Options import (
     SPEED_QUADRUPLE,
     TECHS_VANILLA,
 )
-from .Locations import LocationType
-from .Messages import (
-    window_tokens,
-    miscellaneous_messages,
-    translate_block,
-    translate_message,
-)
-
 
 if TYPE_CHECKING:
     from . import PhSt2World
-    from .Locations import LocationData
+    from .locations import LocationData
 
 
 REV02_UE_HASH = "0fa38b12cf0ab0163d865600ac731a9a"
@@ -105,7 +105,7 @@ class PhSt2ProcedurePatch(APProcedurePatch, APTokenMixin):
     patch_file_ending = ".apphst2"
     result_file_ending = ".gen"
 
-    procedure = [
+    procedure: ClassVar[list[tuple[str, list[Any]]]] = [
         ("apply_tokens", ["token_data.bin"]),
     ]
 
@@ -127,7 +127,7 @@ def get_base_rom_bytes(file_name: str = "") -> bytes:
                 "Supplied Base Rom does not match known MD5 for US+Europe REV02 release. "
                 "Get the correct game and version, then dump it"
             )
-        setattr(get_base_rom_bytes, "base_rom_bytes", base_rom_bytes)
+        get_base_rom_bytes.base_rom_bytes = base_rom_bytes  # type: ignore
     return base_rom_bytes
 
 
@@ -149,9 +149,7 @@ def write_tokens(
     patch.write_token(APTokenTypes.WRITE, name_space.address, raw_name)
 
     # write goal number
-    patch.write_token(
-        APTokenTypes.WRITE, goal_space.address, bytes([world.options.goal])
-    )
+    patch.write_token(APTokenTypes.WRITE, goal_space.address, bytes([world.options.goal]))
 
     # apply Recorder conversation loop fix
     patch.write_token(
@@ -622,9 +620,7 @@ def write_tokens(
             patch.write_token(APTokenTypes.WRITE, addr, neg)
 
         frames = (16 // world.options.movement_speed.value) - 1
-        patch.write_token(
-            APTokenTypes.WRITE, MOVE_FRAME_COUNT, frames.to_bytes(2, "big")
-        )
+        patch.write_token(APTokenTypes.WRITE, MOVE_FRAME_COUNT, frames.to_bytes(2, "big"))
 
         patch.write_token(
             APTokenTypes.WRITE,
@@ -1139,14 +1135,14 @@ def write_tokens(
 
     # patch characters
     if world.write_chars:
-        name_bytes = bytes()
-        job_bytes = bytes()
-        profile_bytes = bytes()
-        setup_bytes = bytes()
-        level_bytes = bytes()
-        portrait_bytes = bytes()
-        walk_bytes = bytes()
-        battle_bytes = bytes()
+        name_bytes = b""
+        job_bytes = b""
+        profile_bytes = b""
+        setup_bytes = b""
+        level_bytes = b""
+        portrait_bytes = b""
+        walk_bytes = b""
+        battle_bytes = b""
         first = world.char_order[0]
         window_index = 0x3A
         for ch in world.char_order:
@@ -1188,7 +1184,7 @@ def write_tokens(
     if world.write_items:
         if len(world.item_data) != 128:
             raise Exception(f"world.item_data is {len(world.item_data)} long")
-        item_bytes = bytes()
+        item_bytes = b""
         for item in world.item_data:
             mask = 1
             who = 0
@@ -1200,22 +1196,17 @@ def write_tokens(
         patch.write_token(APTokenTypes.WRITE, ITEM_DATA_LIST, item_bytes)
 
     # patch tech learn lists
-    if (
-        world.options.randomise_chars.value != CHARS_VANILLA
-        or world.options.randomise_chars != TECHS_VANILLA
-    ):
+    if world.options.randomise_chars.value != CHARS_VANILLA or world.options.randomise_chars != TECHS_VANILLA:
         offset = TECH_LEARN_TABLES
         for name in world.char_names:
             patch.write_token(APTokenTypes.WRITE, offset, bytes(world.map_techs[name]))
-            patch.write_token(
-                APTokenTypes.WRITE, offset + 16, bytes(world.battle_techs[name])
-            )
+            patch.write_token(APTokenTypes.WRITE, offset + 16, bytes(world.battle_techs[name]))
             offset += 32
 
     # patch items
-    valid_locations = set([l.name for l in world.get_locations()])
+    valid_locations = {loc.name for loc in world.get_locations()}
     for location_data in locations:
-        if not location_data.name in valid_locations:
+        if location_data.name not in valid_locations:
             continue
         item = world.get_location(location_data.name).item
         if item is None:
@@ -1235,9 +1226,7 @@ def write_tokens(
         if rom is not None:
             if location_data.type == LocationType.CHEST:
                 if item_data:
-                    patch.write_token(
-                        APTokenTypes.WRITE, rom.address, item_data.get_chest_bytes()
-                    )
+                    patch.write_token(APTokenTypes.WRITE, rom.address, item_data.get_chest_bytes())
                 else:
                     patch.write_token(
                         APTokenTypes.WRITE,
@@ -1245,12 +1234,9 @@ def write_tokens(
                         (item_hex | 0x8000).to_bytes(2, "big"),
                     )
                 continue
-            else:
-                patch.write_token(APTokenTypes.WRITE, rom.address, rom.format(item_hex))
+            patch.write_token(APTokenTypes.WRITE, rom.address, rom.format(item_hex))
         else:
-            raise Exception(
-                f"Do not know how to put {item.name} at {location_data.name}"
-            )
+            raise Exception(f"Do not know how to put {item.name} at {location_data.name}")
 
     patch.write_file("token_data.bin", patch.get_token_binary())
 
@@ -1281,15 +1267,15 @@ def get_initial_setup_bytes(ch: Char):
                 raise Exception(f"cannot have {data.name} in inventory")
             inventory[ii] = data.code
         ii += 1
-    return bytes(equipped + [0, 0, ii] + inventory)
+    return bytes([*equipped, 0, 0, ii, *inventory])
 
 
 def get_level_bytes(ch: Char):
-    result = bytes()
+    result = b""
     level = 0
-    for l in ch.levels:
+    for lvl in ch.levels:
         level += 1
-        result += l.to_bytes(ch.name, level)
+        result += lvl.to_bytes(ch.name, level)
     return result
 
 
@@ -1304,12 +1290,10 @@ def format_profile(ch: Char, width: int = 22, height: int = 12):
             x = 0
             y += 1
         elif x >= width:
-            raise Exception(f"{ch.name} profile line {y+1} is too long")
+            raise Exception(f"{ch.name} profile line {y + 1} is too long")
         else:
             msg += b
             x += 1
     if len(msg) != width * height:
-        raise Exception(
-            f"{ch.name} profile has wrong length: {len(msg)}, should be {width*height}"
-        )
+        raise Exception(f"{ch.name} profile has wrong length: {len(msg)}, should be {width * height}")
     return translate_message(msg, window_tokens)

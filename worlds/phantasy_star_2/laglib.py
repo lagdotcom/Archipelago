@@ -1,8 +1,9 @@
 import logging
-from typing import TYPE_CHECKING, Any, Callable, Iterable, Mapping, NamedTuple, Sequence
+from collections.abc import Callable, Iterable, Mapping, Sequence
+from typing import TYPE_CHECKING, Any, NamedTuple
 
-from BaseClasses import CollectionState
 import worlds._bizhawk as bizhawk
+from BaseClasses import CollectionState
 
 if TYPE_CHECKING:
     from worlds._bizhawk.context import BizHawkClientContext
@@ -32,7 +33,7 @@ class MemorySpan(NamedTuple):
         return self.address + self.size
 
     def __repr__(self):
-        return "%s[%04x, %d]" % (self.region, self.address, self.size)
+        return f"{self.region}[{self.address:04x}, {self.size}]"
 
     def as_tuple(self):
         return self.address, self.size, self.region
@@ -44,10 +45,7 @@ class MemoryBlock:
         self.contents = contents
 
     def contains(self, span: MemorySpan):
-        return (
-            self.span.address <= span.address
-            and self.span.end_address >= span.end_address
-        )
+        return self.span.address <= span.address and self.span.end_address >= span.end_address
 
     def extract(self, span: MemorySpan):
         start = span.address - self.span.address
@@ -55,9 +53,7 @@ class MemoryBlock:
 
     def patch(self, span: MemorySpan, data: bytes):
         start = span.address - self.span.address
-        self.contents = (
-            self.contents[:start] + data + self.contents[start + span.size :]
-        )
+        self.contents = self.contents[:start] + data + self.contents[start + span.size :]
 
 
 class MemoryManager:
@@ -71,9 +67,7 @@ class MemoryManager:
         self.translations[address] = translator
 
     def request(self, ctx: "BizHawkClientContext", spans: Iterable[MemorySpan]):
-        return bizhawk.read(
-            ctx.bizhawk_ctx, list(map(lambda span: span.as_tuple(), spans))
-        )
+        return bizhawk.read(ctx.bizhawk_ctx, [span.as_tuple() for span in spans])
 
     async def update(self, ctx: "BizHawkClientContext"):
         results = await self.request(ctx, self.spans)
@@ -93,6 +87,7 @@ class MemoryManager:
         for block in self.blocks:
             if block.contains(span):
                 return block
+        return None
 
     def get_bytes(self, span: MemorySpan):
         block = self.get_block_for_span(span)
@@ -100,17 +95,14 @@ class MemoryManager:
             return block.extract(span)
         raise Exception(f"Manager does not have {span}")
 
-    async def write_span(
-        self, ctx: "BizHawkClientContext", span: "IntSpan", new_value: int
-    ):
+    async def write_span(self, ctx: "BizHawkClientContext", span: "IntSpan", new_value: int):
         old_value = span.get(self)
-        if await bizhawk.guarded_write(
-            ctx.bizhawk_ctx, [span.as_write(new_value)], [span.as_write(old_value)]
-        ):
+        if await bizhawk.guarded_write(ctx.bizhawk_ctx, [span.as_write(new_value)], [span.as_write(old_value)]):
             block = self.get_block_for_span(span)
             if block:
                 block.patch(span, span.format(new_value))
             return True
+        return False
 
     async def write_list(
         self,
@@ -125,6 +117,7 @@ class MemoryManager:
                 if block:
                     block.patch(span, data)
             return True
+        return False
 
     def _log_change(self, old: MemoryBlock, new: MemoryBlock):
         for i in range(len(old.contents)):
@@ -140,12 +133,9 @@ class MemoryManager:
                     old_val = self.translations[addr](o)
                     new_val = self.translations[addr](n)
                 else:
-                    old_val = "%02x" % o
-                    new_val = "%02x" % n
-                logger.debug(
-                    "%04x %s: %s -> %s (%02x flipped)"
-                    % (addr, name, old_val, new_val, o ^ n)
-                )
+                    old_val = f"{o:02x}"
+                    new_val = f"{n:02x}"
+                logger.debug(f"{addr:04x} {name}: {old_val} -> {new_val} ({o ^ n:02x} flipped)")
 
 
 class IntSpan(MemorySpan):

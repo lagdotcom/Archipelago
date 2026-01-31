@@ -1,14 +1,14 @@
 from enum import IntEnum, IntFlag
 from operator import attrgetter
-from typing import Optional
 
-from BaseClasses import ItemClassification as IC
+from BaseClasses import ItemClassification
 
-from .Constants import jet_scooter_flag, spaceship_flag
-from .Data import ItemName as I, TechID
-from .Data.Types import EquipSlot as S
+from .constants import jet_scooter_flag, spaceship_flag
+from .Data import item_name as i
+from .Data import tech_id
+from .Data.types import EquipSlot as S
 from .laglib import IntSpan
-from .Messages import translate_message
+from .messages import translate_message
 
 
 class ItemType(IntEnum):
@@ -32,11 +32,11 @@ class ItemData:
     id: int
     type: ItemType
     name: str
-    classification: IC
-    code: Optional[int] = None
+    classification: ItemClassification
+    code: int | None = None
     slot: S = S.NONE
-    meseta: Optional[int] = None
-    ram_flag: Optional[IntSpan] = None
+    meseta: int | None = None
+    ram_flag: IntSpan | None = None
     ram_value: int = 1
     price: int = 0
     flags: ItemFlags = ItemFlags.NONE
@@ -50,11 +50,11 @@ class ItemData:
         id: int,
         type: ItemType,
         name: str,
-        classification: IC,
-        code: Optional[int] = None,
+        classification: ItemClassification,
+        code: int | None = None,
         slot: S = S.NONE,
-        meseta: Optional[int] = None,
-        ram_flag: Optional[IntSpan] = None,
+        meseta: int | None = None,
+        ram_flag: IntSpan | None = None,
         ram_value: int = 1,
         price: int = 0,
         flags: ItemFlags = ItemFlags.NONE,
@@ -86,8 +86,8 @@ class ItemData:
         return self.code
 
     def get_chest_bytes(self):
-        raw: Optional[int] = None
-        if self.name == I.Garbage:
+        raw: int | None = None
+        if self.name == i.Garbage:
             raw = 0
         elif self.meseta is not None:
             if self.meseta > 0x7FFF:
@@ -104,7 +104,7 @@ class ItemData:
             raise Exception(f"item {self.name} has name too long (max 10)")
         if self.price > 0xFFFF:
             raise Exception(f"item {self.name} has price over 65536")
-        if self.use_tech and not ItemFlags.Battle in self.flags:
+        if self.use_tech and ItemFlags.Battle not in self.flags:
             raise Exception(f"item {self.name} has a tech but not ItemFlags.Battle")
         if self.use_tech == 0 and ItemFlags.Battle in self.flags:
             raise Exception(f"item {self.name} has ItemFlags.Battle but no tech")
@@ -123,29 +123,23 @@ class ItemData:
 
 
 unused_items = [
-    ItemData(452_1_000, ItemType.Item, "", IC.filler, 0),
+    ItemData(452_1_000, ItemType.Item, "", ItemClassification.filler, 0),
     ItemData(
         452_1_126,
         ItemType.Item,
         "T",
-        IC.filler,
+        ItemClassification.filler,
         0x7E,
-        flags=ItemFlags.Map
-        | ItemFlags.Store
-        | ItemFlags.RevertToAttack
-        | ItemFlags.Sell,
+        flags=ItemFlags.Map | ItemFlags.Store | ItemFlags.RevertToAttack | ItemFlags.Sell,
         price=62000,
     ),
     ItemData(
         452_1_127,
         ItemType.Item,
         "H",
-        IC.filler,
+        ItemClassification.filler,
         0x7F,
-        flags=ItemFlags.Map
-        | ItemFlags.Store
-        | ItemFlags.RevertToAttack
-        | ItemFlags.Sell,
+        flags=ItemFlags.Map | ItemFlags.Store | ItemFlags.RevertToAttack | ItemFlags.Sell,
         price=46000,
     ),
 ]
@@ -154,89 +148,83 @@ key_items = [
     ItemData(
         452_1_001,
         ItemType.Item,
-        I.SmallKey,
-        IC.progression,
+        i.SmallKey,
+        ItemClassification.progression,
         0x1,
         flags=ItemFlags.Map | ItemFlags.Store,
     ),
     ItemData(
         452_1_002,
         ItemType.Item,
-        I.Dynamite,
-        IC.progression,
+        i.Dynamite,
+        ItemClassification.progression,
         0x2,
         flags=ItemFlags.Map | ItemFlags.RevertToAttack,
     ),
     ItemData(
         452_1_003,
         ItemType.Item,
-        I.KeyTube,
-        IC.progression,
+        i.KeyTube,
+        ItemClassification.progression,
         0x3,
         flags=ItemFlags.Map | ItemFlags.Store,
     ),
     ItemData(
         452_1_004,
         ItemType.Item,
-        I.MarueraGum,
-        IC.progression,
+        i.MarueraGum,
+        ItemClassification.progression,
         0x4,
         flags=ItemFlags.Map | ItemFlags.Store,
     ),
     ItemData(
         452_1_005,
         ItemType.Item,
-        I.GreenCard,
-        IC.progression,
+        i.GreenCard,
+        ItemClassification.progression,
         0x5,
         flags=ItemFlags.Map | ItemFlags.Store,
     ),
     ItemData(
         452_1_006,
         ItemType.Item,
-        I.BlueCard,
-        IC.progression,
+        i.BlueCard,
+        ItemClassification.progression,
         0x6,
         flags=ItemFlags.Map | ItemFlags.Store,
     ),
     ItemData(
         452_1_007,
         ItemType.Item,
-        I.YellowCard,
-        IC.progression,
+        i.YellowCard,
+        ItemClassification.progression,
         0x7,
         flags=ItemFlags.Map | ItemFlags.Store,
     ),
     ItemData(
         452_1_008,
         ItemType.Item,
-        I.RedCard,
-        IC.progression,
+        i.RedCard,
+        ItemClassification.progression,
         0x8,
         flags=ItemFlags.Map | ItemFlags.Store,
     ),
-    ItemData(
-        452_1_009, ItemType.Item, I.Letter, IC.progression, 0x9, flags=ItemFlags.Map
-    ),
-    ItemData(
-        452_1_010, ItemType.Item, I.Recorder, IC.progression, 0xA, flags=ItemFlags.Map
-    ),
+    ItemData(452_1_009, ItemType.Item, i.Letter, ItemClassification.progression, 0x9, flags=ItemFlags.Map),
+    ItemData(452_1_010, ItemType.Item, i.Recorder, ItemClassification.progression, 0xA, flags=ItemFlags.Map),
     ItemData(
         452_1_011,
         ItemType.Item,
-        I.MarueraLeaf,
-        IC.progression,
+        i.MarueraLeaf,
+        ItemClassification.progression,
         0xB,
         flags=ItemFlags.Map | ItemFlags.Store,
     ),
-    ItemData(
-        452_1_013, ItemType.Item, I.Prism, IC.progression, 0xD, flags=ItemFlags.Map
-    ),
+    ItemData(452_1_013, ItemType.Item, i.Prism, ItemClassification.progression, 0xD, flags=ItemFlags.Map),
     ItemData(
         452_1_039,
         ItemType.Item,
-        I.NeiMet,
-        IC.progression,
+        i.NeiMet,
+        ItemClassification.progression,
         0x27,
         S.Head,
         flags=ItemFlags.Store,
@@ -245,8 +233,8 @@ key_items = [
     ItemData(
         452_1_040,
         ItemType.Item,
-        I.NeiCrown,
-        IC.progression,
+        i.NeiCrown,
+        ItemClassification.progression,
         0x28,
         S.Head,
         flags=ItemFlags.Store,
@@ -255,8 +243,8 @@ key_items = [
     ItemData(
         452_1_061,
         ItemType.Item,
-        I.NeiArmor,
-        IC.progression,
+        i.NeiArmor,
+        ItemClassification.progression,
         0x3D,
         S.Body,
         flags=ItemFlags.Store,
@@ -265,8 +253,8 @@ key_items = [
     ItemData(
         452_1_062,
         ItemType.Item,
-        I.NeiCape,
-        IC.progression,
+        i.NeiCape,
+        ItemClassification.progression,
         0x3E,
         S.Body,
         flags=ItemFlags.Store,
@@ -275,8 +263,8 @@ key_items = [
     ItemData(
         452_1_084,
         ItemType.Item,
-        I.NeiShield,
-        IC.progression,
+        i.NeiShield,
+        ItemClassification.progression,
         0x54,
         S.OneHand,
         flags=ItemFlags.Store,
@@ -285,8 +273,8 @@ key_items = [
     ItemData(
         452_1_085,
         ItemType.Item,
-        I.NeiEmel,
-        IC.progression,
+        i.NeiEmel,
+        ItemClassification.progression,
         0x55,
         S.OneHand,
         flags=ItemFlags.Store,
@@ -296,8 +284,8 @@ key_items = [
     ItemData(
         452_1_108,
         ItemType.Item,
-        I.NeiSword,
-        IC.progression,
+        i.NeiSword,
+        ItemClassification.progression,
         0x6C,
         S.TwoHand,
         flags=ItemFlags.Map | ItemFlags.Store,
@@ -307,8 +295,8 @@ key_items = [
     ItemData(
         452_1_109,
         ItemType.Item,
-        I.NeiSlasher,
-        IC.progression,
+        i.NeiSlasher,
+        ItemClassification.progression,
         0x6D,
         S.OneHand,
         flags=ItemFlags.Store,
@@ -317,43 +305,41 @@ key_items = [
     ItemData(
         452_1_122,
         ItemType.Item,
-        I.NeiShot,
-        IC.progression,
+        i.NeiShot,
+        ItemClassification.progression,
         0x7A,
         S.TwoHand,
         flags=ItemFlags.Store,
         at=60,
     ),
-    ItemData(
-        452_1_124, ItemType.Item, I.Teim, IC.progression, 0x7C, flags=ItemFlags.Map
-    ),
+    ItemData(452_1_124, ItemType.Item, i.Teim, ItemClassification.progression, 0x7C, flags=ItemFlags.Map),
 ]
 
 flag_items = [
-    ItemData(452_9_000, ItemType.Flag, I.MusikFlag, IC.progression),
+    ItemData(452_9_000, ItemType.Flag, i.MusikFlag, ItemClassification.progression),
     ItemData(
         452_9_001,
         ItemType.FlagAsItem,
-        I.JetScooterFlag,
-        IC.progression,
+        i.JetScooterFlag,
+        ItemClassification.progression,
         0xE1,
         ram_flag=jet_scooter_flag,
         ram_value=2,
     ),
-    ItemData(452_9_002, ItemType.Flag, I.NeifirstFlag, IC.progression),
-    ItemData(452_9_003, ItemType.Flag, I.RedDamFlag, IC.progression),
-    ItemData(452_9_004, ItemType.Flag, I.YellowDamFlag, IC.progression),
-    ItemData(452_9_005, ItemType.Flag, I.BlueDamFlag, IC.progression),
-    ItemData(452_9_006, ItemType.Flag, I.GreenDamFlag, IC.progression),
+    ItemData(452_9_002, ItemType.Flag, i.NeifirstFlag, ItemClassification.progression),
+    ItemData(452_9_003, ItemType.Flag, i.RedDamFlag, ItemClassification.progression),
+    ItemData(452_9_004, ItemType.Flag, i.YellowDamFlag, ItemClassification.progression),
+    ItemData(452_9_005, ItemType.Flag, i.BlueDamFlag, ItemClassification.progression),
+    ItemData(452_9_006, ItemType.Flag, i.GreenDamFlag, ItemClassification.progression),
     ItemData(
         452_9_007,
         ItemType.FlagAsItem,
-        I.SpaceshipFlag,
-        IC.progression,
+        i.SpaceshipFlag,
+        ItemClassification.progression,
         0xE2,
         ram_flag=spaceship_flag,
     ),
-    ItemData(452_9_008, ItemType.Flag, I.WinTheGameFlag, IC.progression),
+    ItemData(452_9_008, ItemType.Flag, i.WinTheGameFlag, ItemClassification.progression),
 ]
 
 
@@ -364,8 +350,8 @@ unique_useful_items = [
     ItemData(
         452_1_042,
         ItemType.Item,
-        I.MogicCap,
-        IC.useful,
+        i.MogicCap,
+        ItemClassification.useful,
         0x2A,
         S.Head,
         flags=ItemFlags.Store,
@@ -374,8 +360,8 @@ unique_useful_items = [
     ItemData(
         452_1_125,
         ItemType.Item,
-        I.Visiphone,
-        IC.useful,
+        i.Visiphone,
+        ItemClassification.useful,
         0x7D,
         flags=ItemFlags.Map | ItemFlags.Store | ItemFlags.Sell,
         price=3000,
@@ -386,8 +372,8 @@ equipment_items = [
     ItemData(
         452_1_023,
         ItemType.Item,
-        I.Headgear,
-        IC.useful,
+        i.Headgear,
+        ItemClassification.useful,
         0x17,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -397,8 +383,8 @@ equipment_items = [
     ItemData(
         452_1_024,
         ItemType.Item,
-        I.Ribbon,
-        IC.useful,
+        i.Ribbon,
+        ItemClassification.useful,
         0x18,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -408,8 +394,8 @@ equipment_items = [
     ItemData(
         452_1_025,
         ItemType.Item,
-        I.FiberGear,
-        IC.useful,
+        i.FiberGear,
+        ItemClassification.useful,
         0x19,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -419,8 +405,8 @@ equipment_items = [
     ItemData(
         452_1_026,
         ItemType.Item,
-        I.SilRibbon,
-        IC.useful,
+        i.SilRibbon,
+        ItemClassification.useful,
         0x1A,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -430,8 +416,8 @@ equipment_items = [
     ItemData(
         452_1_027,
         ItemType.Item,
-        I.SilCrown,
-        IC.useful,
+        i.SilCrown,
+        ItemClassification.useful,
         0x1B,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -441,8 +427,8 @@ equipment_items = [
     ItemData(
         452_1_028,
         ItemType.Item,
-        I.TitaniGear,
-        IC.useful,
+        i.TitaniGear,
+        ItemClassification.useful,
         0x1C,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -452,8 +438,8 @@ equipment_items = [
     ItemData(
         452_1_029,
         ItemType.Item,
-        I.TitaniMet,
-        IC.useful,
+        i.TitaniMet,
+        ItemClassification.useful,
         0x1D,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -463,8 +449,8 @@ equipment_items = [
     ItemData(
         452_1_030,
         ItemType.Item,
-        I.JwlCrown,
-        IC.useful,
+        i.JwlCrown,
+        ItemClassification.useful,
         0x1E,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -474,8 +460,8 @@ equipment_items = [
     ItemData(
         452_1_031,
         ItemType.Item,
-        I.JwlRibbon,
-        IC.useful,
+        i.JwlRibbon,
+        ItemClassification.useful,
         0x1F,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -485,68 +471,68 @@ equipment_items = [
     ItemData(
         452_1_032,
         ItemType.Item,
-        I.CresceGear,
-        IC.useful,
+        i.CresceGear,
+        ItemClassification.useful,
         0x20,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell | ItemFlags.Battle,
         df=14,
         price=280,
-        use_tech=TechID.GIRES,
+        use_tech=tech_id.GIRES,
     ),
     ItemData(
         452_1_033,
         ItemType.Item,
-        I.SnowCrown,
-        IC.useful,
+        i.SnowCrown,
+        ItemClassification.useful,
         0x21,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell | ItemFlags.Battle,
         df=17,
         price=490,
-        use_tech=TechID.DEBAN,
+        use_tech=tech_id.DEBAN,
     ),
     ItemData(
         452_1_034,
         ItemType.Item,
-        I.WindScarf,
-        IC.useful,
+        i.WindScarf,
+        ItemClassification.useful,
         0x22,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell | ItemFlags.Battle,
         df=17,
         price=120,
-        use_tech=TechID.ZAN,
+        use_tech=tech_id.ZAN,
     ),
     ItemData(
         452_1_035,
         ItemType.Item,
-        I.ColorScarf,
-        IC.useful,
+        i.ColorScarf,
+        ItemClassification.useful,
         0x23,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell | ItemFlags.Battle,
         df=17,
         price=130,
-        use_tech=TechID.SANER,
+        use_tech=tech_id.SANER,
     ),
     ItemData(
         452_1_036,
         ItemType.Item,
-        I.StormGear,
-        IC.useful,
+        i.StormGear,
+        ItemClassification.useful,
         0x24,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell | ItemFlags.Battle,
         df=16,
         price=630,
-        use_tech=TechID.GIZAN,
+        use_tech=tech_id.GIZAN,
     ),
     ItemData(
         452_1_037,
         ItemType.Item,
-        I.Laconigear,
-        IC.useful,
+        i.Laconigear,
+        ItemClassification.useful,
         0x25,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -556,8 +542,8 @@ equipment_items = [
     ItemData(
         452_1_038,
         ItemType.Item,
-        I.LaconiaMet,
-        IC.useful,
+        i.LaconiaMet,
+        ItemClassification.useful,
         0x26,
         S.Head,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -567,8 +553,8 @@ equipment_items = [
     ItemData(
         452_1_043,
         ItemType.Item,
-        I.CarbonSuit,
-        IC.useful,
+        i.CarbonSuit,
+        ItemClassification.useful,
         0x2B,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -578,8 +564,8 @@ equipment_items = [
     ItemData(
         452_1_044,
         ItemType.Item,
-        I.CarbonVest,
-        IC.useful,
+        i.CarbonVest,
+        ItemClassification.useful,
         0x2C,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -589,8 +575,8 @@ equipment_items = [
     ItemData(
         452_1_045,
         ItemType.Item,
-        I.FiberCoat,
-        IC.useful,
+        i.FiberCoat,
+        ItemClassification.useful,
         0x2D,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -600,8 +586,8 @@ equipment_items = [
     ItemData(
         452_1_046,
         ItemType.Item,
-        I.FiberCape,
-        IC.useful,
+        i.FiberCape,
+        ItemClassification.useful,
         0x2E,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -611,8 +597,8 @@ equipment_items = [
     ItemData(
         452_1_047,
         ItemType.Item,
-        I.FiberVest,
-        IC.useful,
+        i.FiberVest,
+        ItemClassification.useful,
         0x2F,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -622,8 +608,8 @@ equipment_items = [
     ItemData(
         452_1_048,
         ItemType.Item,
-        I.TtnmArmor,
-        IC.useful,
+        i.TtnmArmor,
+        ItemClassification.useful,
         0x30,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -633,8 +619,8 @@ equipment_items = [
     ItemData(
         452_1_049,
         ItemType.Item,
-        I.TtnmCape,
-        IC.useful,
+        i.TtnmCape,
+        ItemClassification.useful,
         0x31,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -644,8 +630,8 @@ equipment_items = [
     ItemData(
         452_1_050,
         ItemType.Item,
-        I.TtnmChest,
-        IC.useful,
+        i.TtnmChest,
+        ItemClassification.useful,
         0x32,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -655,8 +641,8 @@ equipment_items = [
     ItemData(
         452_1_051,
         ItemType.Item,
-        I.CrmcArmor,
-        IC.useful,
+        i.CrmcArmor,
+        ItemClassification.useful,
         0x33,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -666,8 +652,8 @@ equipment_items = [
     ItemData(
         452_1_052,
         ItemType.Item,
-        I.CrmcCape,
-        IC.useful,
+        i.CrmcCape,
+        ItemClassification.useful,
         0x34,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -677,8 +663,8 @@ equipment_items = [
     ItemData(
         452_1_053,
         ItemType.Item,
-        I.CrmcChest,
-        IC.useful,
+        i.CrmcChest,
+        ItemClassification.useful,
         0x35,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -688,56 +674,56 @@ equipment_items = [
     ItemData(
         452_1_054,
         ItemType.Item,
-        I.AmberRobe,
-        IC.useful,
+        i.AmberRobe,
+        ItemClassification.useful,
         0x36,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell | ItemFlags.Battle,
         df=20,
         price=170,
-        use_tech=TechID.GIRES,
+        use_tech=tech_id.GIRES,
     ),
     ItemData(
         452_1_055,
         ItemType.Item,
-        I.Crystanish,
-        IC.useful,
+        i.Crystanish,
+        ItemClassification.useful,
         0x37,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell | ItemFlags.Battle,
         df=60,
         price=630,
-        use_tech=TechID.GRA,
+        use_tech=tech_id.GRA,
     ),
     ItemData(
         452_1_056,
         ItemType.Item,
-        I.CrystCape,
-        IC.useful,
+        i.CrystCape,
+        ItemClassification.useful,
         0x38,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell | ItemFlags.Battle,
         df=62,
         price=840,
-        use_tech=TechID.GRA,
+        use_tech=tech_id.GRA,
     ),
     ItemData(
         452_1_057,
         ItemType.Item,
-        I.CrystChest,
-        IC.useful,
+        i.CrystChest,
+        ItemClassification.useful,
         0x39,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell | ItemFlags.Battle,
         df=60,
         price=670,
-        use_tech=TechID.GRA,
+        use_tech=tech_id.GRA,
     ),
     ItemData(
         452_1_058,
         ItemType.Item,
-        I.Laconinish,
-        IC.useful,
+        i.Laconinish,
+        ItemClassification.useful,
         0x3A,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -747,8 +733,8 @@ equipment_items = [
     ItemData(
         452_1_059,
         ItemType.Item,
-        I.LaconCape,
-        IC.useful,
+        i.LaconCape,
+        ItemClassification.useful,
         0x3B,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -758,8 +744,8 @@ equipment_items = [
     ItemData(
         452_1_060,
         ItemType.Item,
-        I.LaconChest,
-        IC.useful,
+        i.LaconChest,
+        ItemClassification.useful,
         0x3C,
         S.Body,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -769,8 +755,8 @@ equipment_items = [
     ItemData(
         452_1_063,
         ItemType.Item,
-        I.Shoes,
-        IC.useful,
+        i.Shoes,
+        ItemClassification.useful,
         0x3F,
         S.Feet,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -781,8 +767,8 @@ equipment_items = [
     ItemData(
         452_1_064,
         ItemType.Item,
-        I.Sandals,
-        IC.useful,
+        i.Sandals,
+        ItemClassification.useful,
         0x40,
         S.Feet,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -793,8 +779,8 @@ equipment_items = [
     ItemData(
         452_1_065,
         ItemType.Item,
-        I.Boots,
-        IC.useful,
+        i.Boots,
+        ItemClassification.useful,
         0x41,
         S.Feet,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -805,8 +791,8 @@ equipment_items = [
     ItemData(
         452_1_066,
         ItemType.Item,
-        I.KnifeBoots,
-        IC.useful,
+        i.KnifeBoots,
+        ItemClassification.useful,
         0x42,
         S.Feet,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -818,8 +804,8 @@ equipment_items = [
     ItemData(
         452_1_067,
         ItemType.Item,
-        I.LongBoots,
-        IC.useful,
+        i.LongBoots,
+        ItemClassification.useful,
         0x43,
         S.Feet,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -831,8 +817,8 @@ equipment_items = [
     ItemData(
         452_1_068,
         ItemType.Item,
-        I.HirzaBoots,
-        IC.useful,
+        i.HirzaBoots,
+        ItemClassification.useful,
         0x44,
         S.Feet,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -843,8 +829,8 @@ equipment_items = [
     ItemData(
         452_1_069,
         ItemType.Item,
-        I.ShuneBoots,
-        IC.useful,
+        i.ShuneBoots,
+        ItemClassification.useful,
         0x45,
         S.Feet,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -855,8 +841,8 @@ equipment_items = [
     ItemData(
         452_1_070,
         ItemType.Item,
-        I.GardaBoots,
-        IC.useful,
+        i.GardaBoots,
+        ItemClassification.useful,
         0x46,
         S.Feet,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -867,8 +853,8 @@ equipment_items = [
     ItemData(
         452_1_071,
         ItemType.Item,
-        I.CrbnShield,
-        IC.useful,
+        i.CrbnShield,
+        ItemClassification.useful,
         0x47,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -878,8 +864,8 @@ equipment_items = [
     ItemData(
         452_1_072,
         ItemType.Item,
-        I.CrbnEmel,
-        IC.useful,
+        i.CrbnEmel,
+        ItemClassification.useful,
         0x48,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -889,8 +875,8 @@ equipment_items = [
     ItemData(
         452_1_073,
         ItemType.Item,
-        I.FibrShild,
-        IC.useful,
+        i.FibrShild,
+        ItemClassification.useful,
         0x49,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -900,8 +886,8 @@ equipment_items = [
     ItemData(
         452_1_074,
         ItemType.Item,
-        I.FiberEmel,
-        IC.useful,
+        i.FiberEmel,
+        ItemClassification.useful,
         0x4A,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -911,8 +897,8 @@ equipment_items = [
     ItemData(
         452_1_075,
         ItemType.Item,
-        I.MirShield,
-        IC.useful,
+        i.MirShield,
+        ItemClassification.useful,
         0x4B,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -922,8 +908,8 @@ equipment_items = [
     ItemData(
         452_1_076,
         ItemType.Item,
-        I.MirEmel,
-        IC.useful,
+        i.MirEmel,
+        ItemClassification.useful,
         0x4C,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -933,8 +919,8 @@ equipment_items = [
     ItemData(
         452_1_077,
         ItemType.Item,
-        I.CerShield,
-        IC.useful,
+        i.CerShield,
+        ItemClassification.useful,
         0x4D,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -944,8 +930,8 @@ equipment_items = [
     ItemData(
         452_1_078,
         ItemType.Item,
-        I.CerEmel,
-        IC.useful,
+        i.CerEmel,
+        ItemClassification.useful,
         0x4E,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -955,44 +941,44 @@ equipment_items = [
     ItemData(
         452_1_079,
         ItemType.Item,
-        I.Aegis,
-        IC.useful,
+        i.Aegis,
+        ItemClassification.useful,
         0x4F,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell | ItemFlags.Battle,
         df=32,
         price=1200,
-        use_tech=TechID.GIRES,
+        use_tech=tech_id.GIRES,
     ),
     ItemData(
         452_1_080,
         ItemType.Item,
-        I.GrSleeves,
-        IC.useful,
+        i.GrSleeves,
+        ItemClassification.useful,
         0x50,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell | ItemFlags.Battle,
         df=63,
         price=840,
-        use_tech=TechID.SHINB,
+        use_tech=tech_id.SHINB,
     ),
     ItemData(
         452_1_081,
         ItemType.Item,
-        I.TruthSlvs,
-        IC.useful,
+        i.TruthSlvs,
+        ItemClassification.useful,
         0x51,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell | ItemFlags.Battle,
         df=59,
         price=720,
-        use_tech=TechID.GIRES,
+        use_tech=tech_id.GIRES,
     ),
     ItemData(
         452_1_082,
         ItemType.Item,
-        I.LaconEmel,
-        IC.useful,
+        i.LaconEmel,
+        ItemClassification.useful,
         0x52,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1002,8 +988,8 @@ equipment_items = [
     ItemData(
         452_1_083,
         ItemType.Item,
-        I.LacShield,
-        IC.useful,
+        i.LacShield,
+        ItemClassification.useful,
         0x53,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1013,8 +999,8 @@ equipment_items = [
     ItemData(
         452_1_086,
         ItemType.Item,
-        I.Knife,
-        IC.useful,
+        i.Knife,
+        ItemClassification.useful,
         0x56,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1024,8 +1010,8 @@ equipment_items = [
     ItemData(
         452_1_087,
         ItemType.Item,
-        I.Dagger,
-        IC.useful,
+        i.Dagger,
+        ItemClassification.useful,
         0x57,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1036,8 +1022,8 @@ equipment_items = [
     ItemData(
         452_1_088,
         ItemType.Item,
-        I.Scalpel,
-        IC.useful,
+        i.Scalpel,
+        ItemClassification.useful,
         0x58,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1047,8 +1033,8 @@ equipment_items = [
     ItemData(
         452_1_089,
         ItemType.Item,
-        I.SteelBar,
-        IC.useful,
+        i.SteelBar,
+        ItemClassification.useful,
         0x59,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1059,8 +1045,8 @@ equipment_items = [
     ItemData(
         452_1_090,
         ItemType.Item,
-        I.Boomerang,
-        IC.useful,
+        i.Boomerang,
+        ItemClassification.useful,
         0x5A,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1070,8 +1056,8 @@ equipment_items = [
     ItemData(
         452_1_091,
         ItemType.Item,
-        I.Slasher,
-        IC.useful,
+        i.Slasher,
+        ItemClassification.useful,
         0x5B,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1081,8 +1067,8 @@ equipment_items = [
     ItemData(
         452_1_092,
         ItemType.Item,
-        I.Sword,
-        IC.useful,
+        i.Sword,
+        ItemClassification.useful,
         0x5C,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1093,8 +1079,8 @@ equipment_items = [
     ItemData(
         452_1_093,
         ItemType.Item,
-        I.Whip,
-        IC.useful,
+        i.Whip,
+        ItemClassification.useful,
         0x5D,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1105,8 +1091,8 @@ equipment_items = [
     ItemData(
         452_1_094,
         ItemType.Item,
-        I.CeramSwrd,
-        IC.useful,
+        i.CeramSwrd,
+        ItemClassification.useful,
         0x5E,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1117,8 +1103,8 @@ equipment_items = [
     ItemData(
         452_1_095,
         ItemType.Item,
-        I.CeramKnfe,
-        IC.useful,
+        i.CeramKnfe,
+        ItemClassification.useful,
         0x5F,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1129,8 +1115,8 @@ equipment_items = [
     ItemData(
         452_1_096,
         ItemType.Item,
-        I.CeramBar,
-        IC.useful,
+        i.CeramBar,
+        ItemClassification.useful,
         0x60,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1141,8 +1127,8 @@ equipment_items = [
     ItemData(
         452_1_097,
         ItemType.Item,
-        I.LasrSlshr,
-        IC.useful,
+        i.LasrSlshr,
+        ItemClassification.useful,
         0x61,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1152,8 +1138,8 @@ equipment_items = [
     ItemData(
         452_1_098,
         ItemType.Item,
-        I.LasrSword,
-        IC.useful,
+        i.LasrSword,
+        ItemClassification.useful,
         0x62,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1164,8 +1150,8 @@ equipment_items = [
     ItemData(
         452_1_099,
         ItemType.Item,
-        I.LaserBar,
-        IC.useful,
+        i.LaserBar,
+        ItemClassification.useful,
         0x63,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1176,8 +1162,8 @@ equipment_items = [
     ItemData(
         452_1_100,
         ItemType.Item,
-        I.LaserKnfe,
-        IC.useful,
+        i.LaserKnfe,
+        ItemClassification.useful,
         0x64,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1188,8 +1174,8 @@ equipment_items = [
     ItemData(
         452_1_101,
         ItemType.Item,
-        I.SwdOfAng,
-        IC.useful,
+        i.SwdOfAng,
+        ItemClassification.useful,
         0x65,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1199,8 +1185,8 @@ equipment_items = [
     ItemData(
         452_1_102,
         ItemType.Item,
-        I.FireSlshr,
-        IC.useful,
+        i.FireSlshr,
+        ItemClassification.useful,
         0x66,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1210,21 +1196,21 @@ equipment_items = [
     ItemData(
         452_1_103,
         ItemType.Item,
-        I.FireStaff,
-        IC.useful,
+        i.FireStaff,
+        ItemClassification.useful,
         0x67,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell | ItemFlags.Battle,
         at=32,
         df=11,
         price=670,
-        use_tech=TechID.FOI,
+        use_tech=tech_id.FOI,
     ),
     ItemData(
         452_1_104,
         ItemType.Item,
-        I.LacnMace,
-        IC.useful,
+        i.LacnMace,
+        ItemClassification.useful,
         0x68,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1235,8 +1221,8 @@ equipment_items = [
     ItemData(
         452_1_105,
         ItemType.Item,
-        I.LacDagger,
-        IC.useful,
+        i.LacDagger,
+        ItemClassification.useful,
         0x69,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1247,8 +1233,8 @@ equipment_items = [
     ItemData(
         452_1_106,
         ItemType.Item,
-        I.ACSlashr,
-        IC.useful,
+        i.ACSlashr,
+        ItemClassification.useful,
         0x6A,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1258,8 +1244,8 @@ equipment_items = [
     ItemData(
         452_1_107,
         ItemType.Item,
-        I.LacSword,
-        IC.useful,
+        i.LacSword,
+        ItemClassification.useful,
         0x6B,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1270,8 +1256,8 @@ equipment_items = [
     ItemData(
         452_1_110,
         ItemType.Item,
-        I.BowGun,
-        IC.useful,
+        i.BowGun,
+        ItemClassification.useful,
         0x6E,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1281,8 +1267,8 @@ equipment_items = [
     ItemData(
         452_1_111,
         ItemType.Item,
-        I.SonicGun,
-        IC.useful,
+        i.SonicGun,
+        ItemClassification.useful,
         0x6F,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1292,8 +1278,8 @@ equipment_items = [
     ItemData(
         452_1_112,
         ItemType.Item,
-        I.Shotgun,
-        IC.useful,
+        i.Shotgun,
+        ItemClassification.useful,
         0x70,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1303,8 +1289,8 @@ equipment_items = [
     ItemData(
         452_1_113,
         ItemType.Item,
-        I.SilentShot,
-        IC.useful,
+        i.SilentShot,
+        ItemClassification.useful,
         0x71,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1314,8 +1300,8 @@ equipment_items = [
     ItemData(
         452_1_114,
         ItemType.Item,
-        I.PoisonShot,
-        IC.useful,
+        i.PoisonShot,
+        ItemClassification.useful,
         0x72,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1325,8 +1311,8 @@ equipment_items = [
     ItemData(
         452_1_115,
         ItemType.Item,
-        I.AcidShot,
-        IC.useful,
+        i.AcidShot,
+        ItemClassification.useful,
         0x73,
         S.OneHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1336,8 +1322,8 @@ equipment_items = [
     ItemData(
         452_1_116,
         ItemType.Item,
-        I.Cannon,
-        IC.useful,
+        i.Cannon,
+        ItemClassification.useful,
         0x74,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1347,8 +1333,8 @@ equipment_items = [
     ItemData(
         452_1_117,
         ItemType.Item,
-        I.Vulcan,
-        IC.useful,
+        i.Vulcan,
+        ItemClassification.useful,
         0x75,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1358,8 +1344,8 @@ equipment_items = [
     ItemData(
         452_1_118,
         ItemType.Item,
-        I.LaserShot,
-        IC.useful,
+        i.LaserShot,
+        ItemClassification.useful,
         0x76,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1369,8 +1355,8 @@ equipment_items = [
     ItemData(
         452_1_119,
         ItemType.Item,
-        I.LsrCannon,
-        IC.useful,
+        i.LsrCannon,
+        ItemClassification.useful,
         0x77,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1380,8 +1366,8 @@ equipment_items = [
     ItemData(
         452_1_120,
         ItemType.Item,
-        I.PlsCannon,
-        IC.useful,
+        i.PlsCannon,
+        ItemClassification.useful,
         0x78,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1391,8 +1377,8 @@ equipment_items = [
     ItemData(
         452_1_121,
         ItemType.Item,
-        I.PulseVlcn,
-        IC.useful,
+        i.PulseVlcn,
+        ItemClassification.useful,
         0x79,
         S.TwoHand,
         flags=ItemFlags.Store | ItemFlags.Sell,
@@ -1408,159 +1394,122 @@ consumable_items = [
     ItemData(
         452_1_014,
         ItemType.Item,
-        I.Telepipe,
-        IC.filler,
+        i.Telepipe,
+        ItemClassification.filler,
         0xE,
-        flags=ItemFlags.Map
-        | ItemFlags.Store
-        | ItemFlags.RevertToAttack
-        | ItemFlags.Sell,
+        flags=ItemFlags.Map | ItemFlags.Store | ItemFlags.RevertToAttack | ItemFlags.Sell,
         price=130,
     ),
     ItemData(
         452_1_015,
         ItemType.Item,
-        I.Escapipe,
-        IC.filler,
+        i.Escapipe,
+        ItemClassification.filler,
         0xF,
-        flags=ItemFlags.Map
-        | ItemFlags.Store
-        | ItemFlags.RevertToAttack
-        | ItemFlags.Sell,
+        flags=ItemFlags.Map | ItemFlags.Store | ItemFlags.RevertToAttack | ItemFlags.Sell,
         price=70,
     ),
     ItemData(
         452_1_016,
         ItemType.Item,
-        I.Hidapipe,
-        IC.filler,
+        i.Hidapipe,
+        ItemClassification.filler,
         0x10,
-        flags=ItemFlags.Map
-        | ItemFlags.Store
-        | ItemFlags.RevertToAttack
-        | ItemFlags.Sell,
+        flags=ItemFlags.Map | ItemFlags.Store | ItemFlags.RevertToAttack | ItemFlags.Sell,
         price=280,
     ),
     ItemData(
         452_1_017,
         ItemType.Item,
-        I.Monomate,
-        IC.filler,
+        i.Monomate,
+        ItemClassification.filler,
         0x11,
-        flags=ItemFlags.Map
-        | ItemFlags.Battle
-        | ItemFlags.Store
-        | ItemFlags.RevertToAttack
-        | ItemFlags.Sell,
+        flags=ItemFlags.Map | ItemFlags.Battle | ItemFlags.Store | ItemFlags.RevertToAttack | ItemFlags.Sell,
         price=20,
-        use_tech=TechID.RES,
+        use_tech=tech_id.RES,
     ),
     ItemData(
         452_1_018,
         ItemType.Item,
-        I.Dimate,
-        IC.filler,
+        i.Dimate,
+        ItemClassification.filler,
         0x12,
-        flags=ItemFlags.Map
-        | ItemFlags.Battle
-        | ItemFlags.Store
-        | ItemFlags.RevertToAttack
-        | ItemFlags.Sell,
+        flags=ItemFlags.Map | ItemFlags.Battle | ItemFlags.Store | ItemFlags.RevertToAttack | ItemFlags.Sell,
         price=50,
-        use_tech=TechID.GIRES,
+        use_tech=tech_id.GIRES,
     ),
     ItemData(
         452_1_019,
         ItemType.Item,
-        I.Trimate,
-        IC.filler,
+        i.Trimate,
+        ItemClassification.filler,
         0x13,
-        flags=ItemFlags.Map
-        | ItemFlags.Battle
-        | ItemFlags.Store
-        | ItemFlags.RevertToAttack
-        | ItemFlags.Sell,
+        flags=ItemFlags.Map | ItemFlags.Battle | ItemFlags.Store | ItemFlags.RevertToAttack | ItemFlags.Sell,
         price=160,
-        use_tech=TechID.NARES,
+        use_tech=tech_id.NARES,
     ),
     ItemData(
         452_1_020,
         ItemType.Item,
-        I.Antidote,
-        IC.filler,
+        i.Antidote,
+        ItemClassification.filler,
         0x14,
-        flags=ItemFlags.Map
-        | ItemFlags.Battle
-        | ItemFlags.Store
-        | ItemFlags.RevertToAttack
-        | ItemFlags.Sell,
+        flags=ItemFlags.Map | ItemFlags.Battle | ItemFlags.Store | ItemFlags.RevertToAttack | ItemFlags.Sell,
         price=10,
-        use_tech=TechID.ANTI,
+        use_tech=tech_id.ANTI,
     ),
     ItemData(
         452_1_021,
         ItemType.Item,
-        I.StarMist,
-        IC.filler,
+        i.StarMist,
+        ItemClassification.filler,
         0x15,
-        flags=ItemFlags.Map
-        | ItemFlags.Battle
-        | ItemFlags.Store
-        | ItemFlags.RevertToAttack
-        | ItemFlags.Sell,
+        flags=ItemFlags.Map | ItemFlags.Battle | ItemFlags.Store | ItemFlags.RevertToAttack | ItemFlags.Sell,
         price=1000,
-        use_tech=TechID.NASAR,
+        use_tech=tech_id.NASAR,
     ),
     ItemData(
         452_1_022,
         ItemType.Item,
-        I.MoonDew,
-        IC.filler,
+        i.MoonDew,
+        ItemClassification.filler,
         0x16,
-        flags=ItemFlags.Map
-        | ItemFlags.Battle
-        | ItemFlags.Store
-        | ItemFlags.RevertToAttack
-        | ItemFlags.Sell,
+        flags=ItemFlags.Map | ItemFlags.Battle | ItemFlags.Store | ItemFlags.RevertToAttack | ItemFlags.Sell,
         price=12000,
-        use_tech=TechID.REVER,
+        use_tech=tech_id.REVER,
     ),
 ]
 
 junk_items = [
-    ItemData(
-        452_1_012, ItemType.Item, I.PlasmaRing, IC.filler, 0xC, flags=ItemFlags.Map
-    ),
+    ItemData(452_1_012, ItemType.Item, i.PlasmaRing, ItemClassification.filler, 0xC, flags=ItemFlags.Map),
     ItemData(
         452_1_041,
         ItemType.Item,
-        I.MagicCap,
-        IC.filler,
+        i.MagicCap,
+        ItemClassification.filler,
         0x29,
         S.Head,
         flags=ItemFlags.Store,
         df=2,
     ),
-    ItemData(
-        452_1_123, ItemType.Item, I.PrsnClths, IC.filler, 0x7B, S.Body, df=2, price=100
-    ),
-    ItemData(452_2_000, ItemType.Garbage, I.Garbage, IC.filler),
+    ItemData(452_1_123, ItemType.Item, i.PrsnClths, ItemClassification.filler, 0x7B, S.Body, df=2, price=100),
+    ItemData(452_2_000, ItemType.Garbage, i.Garbage, ItemClassification.filler),
 ]
 
 meseta_items = [
-    ItemData(452_2_001, ItemType.Money, I.Meseta(20), IC.filler, meseta=20),
-    ItemData(452_2_002, ItemType.Money, I.Meseta(40), IC.filler, meseta=40),
-    ItemData(452_2_003, ItemType.Money, I.Meseta(60), IC.filler, meseta=60),
-    ItemData(452_2_004, ItemType.Money, I.Meseta(100), IC.filler, meseta=100),
-    ItemData(452_2_005, ItemType.Money, I.Meseta(150), IC.filler, meseta=150),
-    ItemData(452_2_006, ItemType.Money, I.Meseta(200), IC.filler, meseta=200),
-    ItemData(452_2_007, ItemType.Money, I.Meseta(5600), IC.filler, meseta=5600),
-    ItemData(452_2_008, ItemType.Money, I.Meseta(6400), IC.filler, meseta=6400),
-    ItemData(452_2_009, ItemType.Money, I.Meseta(7800), IC.filler, meseta=7800),
-    ItemData(452_2_010, ItemType.Money, I.Meseta(8600), IC.filler, meseta=8600),
-    ItemData(452_2_011, ItemType.Money, I.Meseta(12000), IC.filler, meseta=12000),
-    ItemData(452_2_012, ItemType.Money, I.Meseta(15000), IC.filler, meseta=15000),
-    ItemData(452_2_013, ItemType.Money, I.Meseta(18000), IC.filler, meseta=18000),
+    ItemData(452_2_001, ItemType.Money, i.meseta(20), ItemClassification.filler, meseta=20),
+    ItemData(452_2_002, ItemType.Money, i.meseta(40), ItemClassification.filler, meseta=40),
+    ItemData(452_2_003, ItemType.Money, i.meseta(60), ItemClassification.filler, meseta=60),
+    ItemData(452_2_004, ItemType.Money, i.meseta(100), ItemClassification.filler, meseta=100),
+    ItemData(452_2_005, ItemType.Money, i.meseta(150), ItemClassification.filler, meseta=150),
+    ItemData(452_2_006, ItemType.Money, i.meseta(200), ItemClassification.filler, meseta=200),
+    ItemData(452_2_007, ItemType.Money, i.meseta(5600), ItemClassification.filler, meseta=5600),
+    ItemData(452_2_008, ItemType.Money, i.meseta(6400), ItemClassification.filler, meseta=6400),
+    ItemData(452_2_009, ItemType.Money, i.meseta(7800), ItemClassification.filler, meseta=7800),
+    ItemData(452_2_010, ItemType.Money, i.meseta(8600), ItemClassification.filler, meseta=8600),
+    ItemData(452_2_011, ItemType.Money, i.meseta(12000), ItemClassification.filler, meseta=12000),
+    ItemData(452_2_012, ItemType.Money, i.meseta(15000), ItemClassification.filler, meseta=15000),
+    ItemData(452_2_013, ItemType.Money, i.meseta(18000), ItemClassification.filler, meseta=18000),
 ]
 
 filler_items = consumable_items + junk_items + meseta_items
@@ -1580,10 +1529,6 @@ items_by_name = {item.name: item for item in all_items}
 items_by_id = {item.id: item for item in all_items}
 
 items_with_codes = sorted(
-    [
-        item
-        for item in all_items + unused_items
-        if item.type == ItemType.Item and item.code is not None
-    ],
+    [item for item in all_items + unused_items if item.type == ItemType.Item and item.code is not None],
     key=attrgetter("code_as_int"),
 )

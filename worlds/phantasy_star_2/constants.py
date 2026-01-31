@@ -1,4 +1,6 @@
-from .laglib import IntSpan, StrSpan, genesis_rom as ROM, genesis_ram as RAM
+from .laglib import IntSpan, StrSpan
+from .laglib import genesis_ram as ram
+from .laglib import genesis_rom as rom
 
 game_name = "Phantasy Star II"
 
@@ -318,45 +320,45 @@ ram_names = {
     0xFFF1: "openingEndingFlag",
 }
 
-party_size = IntSpan(RAM, 0xC600, 2)
+party_size = IntSpan(ram, 0xC600, 2)
 party_composition = [
-    IntSpan(RAM, 0xC608, 2),
-    IntSpan(RAM, 0xC60A, 2),
-    IntSpan(RAM, 0xC60C, 2),
-    IntSpan(RAM, 0xC60E, 2),
+    IntSpan(ram, 0xC608, 2),
+    IntSpan(ram, 0xC60A, 2),
+    IntSpan(ram, 0xC60C, 2),
+    IntSpan(ram, 0xC60E, 2),
 ]
-current_money = IntSpan(RAM, 0xC620, 4)
+current_money = IntSpan(ram, 0xC620, 4)
 
-map_index = IntSpan(RAM, 0xC640, 2)
-quest_flags = IntSpan(RAM, 0xC700, 0x55)
-jet_scooter_flag = IntSpan(RAM, 0xC716, 1)
-spaceship_flag = IntSpan(RAM, 0xC73F, 1)
-chest_flags = IntSpan(RAM, 0xC780, 0x94)
-received_item_storage = IntSpan(RAM, 0xC7FE, 2)
-script_status = IntSpan(RAM, 0xCD00, 2)
-window_status = IntSpan(RAM, 0xDE54, 10)
-interaction_status = IntSpan(RAM, 0xDE6E, 4)
-game_mode = IntSpan(RAM, 0xF600, 1)
-scene_status = IntSpan(RAM, 0xF750, 4)
-opening_ending_flag = IntSpan(RAM, 0xFFF0, 2)
+map_index = IntSpan(ram, 0xC640, 2)
+quest_flags = IntSpan(ram, 0xC700, 0x55)
+jet_scooter_flag = IntSpan(ram, 0xC716, 1)
+spaceship_flag = IntSpan(ram, 0xC73F, 1)
+chest_flags = IntSpan(ram, 0xC780, 0x94)
+received_item_storage = IntSpan(ram, 0xC7FE, 2)
+script_status = IntSpan(ram, 0xCD00, 2)
+window_status = IntSpan(ram, 0xDE54, 10)
+interaction_status = IntSpan(ram, 0xDE6E, 4)
+game_mode = IntSpan(ram, 0xF600, 1)
+scene_status = IntSpan(ram, 0xF750, 4)
+opening_ending_flag = IntSpan(ram, 0xFFF0, 2)
 
 
 party_inventories = [
-    IntSpan(RAM, 0xC027, 17),
-    IntSpan(RAM, 0xC067, 17),
-    IntSpan(RAM, 0xC0A7, 17),
-    IntSpan(RAM, 0xC0E7, 17),
-    IntSpan(RAM, 0xC127, 17),
-    IntSpan(RAM, 0xC167, 17),
-    IntSpan(RAM, 0xC1A7, 17),
-    IntSpan(RAM, 0xC1E7, 17),
+    IntSpan(ram, 0xC027, 17),
+    IntSpan(ram, 0xC067, 17),
+    IntSpan(ram, 0xC0A7, 17),
+    IntSpan(ram, 0xC0E7, 17),
+    IntSpan(ram, 0xC127, 17),
+    IntSpan(ram, 0xC167, 17),
+    IntSpan(ram, 0xC1A7, 17),
+    IntSpan(ram, 0xC1E7, 17),
 ]
 
 
 # ROM addresses
 
-rom_international_name = StrSpan(ROM, 0x150, 32)
-rom_version = StrSpan(ROM, 0x18C, 2)
+rom_international_name = StrSpan(rom, 0x150, 32)
+rom_version = StrSpan(rom, 0x18C, 2)
 
 CHECKSUM_FAILED_JUMP = 0x250
 
@@ -370,12 +372,12 @@ JUMP_FOLLOWING_CHARACTER_SPEED = 0x3B26
 
 MOTAVIAN_INIT_DELETE_CHECK = 0x42E8
 
-rolf_portrait_op = IntSpan(ROM, 0x82F2, 4)
-rolf_portrait_palette_op = IntSpan(ROM, 0x82FB, 1)
+rolf_portrait_op = IntSpan(rom, 0x82F2, 4)
+rolf_portrait_palette_op = IntSpan(rom, 0x82FB, 1)
 
 PORTRAITS_LIST = 0x8440
 
-starting_meseta_amount = IntSpan(ROM, 0x8A58, 4)
+starting_meseta_amount = IntSpan(rom, 0x8A58, 4)
 
 INITIAL_CHAR_NAMES = 0x8B1A
 INITIAL_CHAR_SETUP = 0x8B3A
@@ -443,5 +445,5 @@ PATCH_CARD_LOOKUP_TABLE = 0xBF872
 PATCH_GET_CARD = 0xBF876
 PATCH_GAIRA_CONTROL_PANEL = 0xBF892
 
-name_space = StrSpan(ROM, 0xBFE00, 0x200, "utf-8")
-goal_space = IntSpan(ROM, 0xBFDFF, 1)
+name_space = StrSpan(rom, 0xBFE00, 0x200, "utf-8")
+goal_space = IntSpan(rom, 0xBFDFF, 1)
