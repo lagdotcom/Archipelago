@@ -575,7 +575,7 @@ def write_tokens(world: "SITDWorld", patch: SITDProcedurePatch, locations: Itera
                     item_data = items_by_id[item.code]
                     if item_data.code is not None:
                         item_hex = item_data.code
-            # print(item.name, 'in', location_data.name, ':', hex(item_hex))
+            # print(item.name, "in", location_data.name, ":", hex(item_hex))
             for replacement in location_data.rom_locations:
                 patch.write_token(APTokenTypes.WRITE, replacement.address, replacement.format(item_hex))
 

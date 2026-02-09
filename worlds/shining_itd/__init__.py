@@ -1,10 +1,11 @@
 import logging
 import os
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from typing import Any, ClassVar
 
 import settings
-from BaseClasses import CollectionState, Item, Location, MultiWorld, Region, Tutorial
+from BaseClasses import Item, Location, MultiWorld, Region, Tutorial
+from rule_builder.rules import HasAll
 
 from ..AutoWorld import WebWorld, World
 from .client import SITDClient  # type: ignore  # noqa: F401
@@ -115,7 +116,7 @@ class SITDWorld(World):
         # make regions
         for name in goal.region_names:
             info = regions_by_name[name]
-            # logger.debug('add region: [%s]', info.name)
+            # logger.debug("add region: [%s]", info.name)
             region = Region(info.name, player, multiworld)
             multiworld.regions.append(region)
 
@@ -124,11 +125,10 @@ class SITDWorld(World):
             if not goal.has_region(info.region_name):
                 continue
             region = multiworld.get_region(info.region_name, player)
-            # logger.debug('add location [%s] to region [%s]', info.name, region.name)
+            # logger.debug("add location [%s] to region [%s]", info.name, region.name)
             loc = SITDLocation(player, info.name, info.id, region)
-            if info.required_items:
-                capture = tuple(info.required_items)
-                loc.access_rule = lambda state, req=capture: state.has_all(req, player)
+            if info.rule is not None:
+                self.set_rule(loc, info.rule)
             region.locations.append(loc)
 
         # make connections
@@ -139,27 +139,17 @@ class SITDWorld(World):
                 continue
             if len(info.exits):
                 region = multiworld.get_region(info.name, player)
-                for exit_name, item_lists in info.exits.items():
+                for exit_name, rule in info.exits.items():
                     if not goal.has_region(exit_name):
                         continue
-                    # logger.debug('connect [%s] to [%s]', info.name, exit_name)
+                    # logger.debug("connect [%s] to [%s]", info.name, exit_name)
                     destination = multiworld.get_region(exit_name, player)
-                    region.connect(destination, None, self.make_exit_rule(item_lists))
-
-    def make_exit_rule(self, item_lists: list[list[str]]) -> Callable[[CollectionState], bool] | None:
-        if len(item_lists) == 0:
-            return None
-        return lambda state: self.check_exit_rule(state, item_lists)
-
-    def check_exit_rule(self, state: CollectionState, item_lists: list[list[str]]):
-        for items in item_lists:
-            if state.has_all(items, self.player):
-                return True
-        return False
+                    entrance = region.connect(destination)
+                    self.set_rule(entrance, rule)
 
     def set_rules(self):
         goal = get_goal_data(self.options.goal.value)
-        self.multiworld.completion_condition[self.player] = goal.get_completion_function(self.player)
+        self.set_completion_rule(HasAll(*goal.completion_item_names))
 
     def create_item(self, name: str):
         item = items_by_name[name]
@@ -183,28 +173,28 @@ class SITDWorld(World):
             item = self.create_item(name)
             fixed_location = self.get_fixed_location_for_item(name)
             if fixed_location:
-                # logger.debug('force [%s] at [%s]', name, fixed_location.name)
+                # logger.debug("force [%s] at [%s]", name, fixed_location.name)
                 self.multiworld.get_location(fixed_location.name, self.player).place_locked_item(item)
             else:
-                # logger.debug('required: add [%s] to item pool', item.name)
+                # logger.debug("required: add [%s] to item pool", item.name)
                 self.multiworld.itempool.append(item)
             added_items.append(item.name)
 
         remaining = len(list(self.get_locations())) - len(added_items)
-        # print(f'remaining location count: {remaining}')
+        # logger.debug(f"remaining location count: {remaining}")
 
         if options.useful_items.value > 0:
             useful = useful_item_names[:]
             useful_count = min(int(remaining * options.useful_items.value // 100), len(useful))
             self.random.shuffle(useful)
             for name in useful[:useful_count]:
-                # logger.debug('useful: add [%s] to item pool', name)
+                # logger.debug("useful: add [%s] to item pool", name)
                 self.multiworld.itempool.append(self.create_item(name))
                 remaining -= 1
 
         for _ in range(remaining):
             name = self.get_filler_item_name()
-            # logger.debug('filler: add [%s] to item pool', name)
+            # logger.debug("filler: add [%s] to item pool", name)
             self.multiworld.itempool.append(self.create_item(name))
 
     def get_filler_item_name(self):

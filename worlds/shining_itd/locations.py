@@ -1,18 +1,14 @@
 from typing import NamedTuple
 
-from .constants import CHEST_CONTENTS_BY_FLOOR, CHEST_FLAG_END, CHEST_FLAG_START
+from rule_builder.rules import Has, Rule
+
+from .constants import CHEST_CONTENTS_BY_FLOOR, chest_flags_span
+from .laglib import IntSpan
+from .laglib import genesis_rom as rom
 from .Names import item_name as i
 from .Names import region_name as r
 
 mask_to_offset = {0x01: 0, 0x02: 1, 0x04: 2, 0x08: 3, 0x10: 4, 0x20: 5, 0x40: 6, 0x80: 7}
-
-
-class Replacement(NamedTuple):
-    address: int
-    size: int
-
-    def format(self, value: int):
-        return value.to_bytes(self.size, "big")
 
 
 class LD(NamedTuple):
@@ -22,7 +18,7 @@ class LD(NamedTuple):
     check_address: int
     check_mask: int
     fixed_item: str | None = None
-    required_items: set[str] | None = None
+    rule: Rule | None = None
 
     @property
     def name(self):
@@ -30,23 +26,23 @@ class LD(NamedTuple):
 
     @property
     def is_chest(self):
-        return self.check_address >= CHEST_FLAG_START and self.check_address < CHEST_FLAG_END
+        return self.check_address >= chest_flags_span.address and self.check_address < chest_flags_span.end_address
 
     @property
     def rom_locations(self):
         if self.is_chest:
-            floor_no = (self.check_address - CHEST_FLAG_START) // 2
+            floor_no = (self.check_address - chest_flags_span.address) // 2
             addr = CHEST_CONTENTS_BY_FLOOR[floor_no] + mask_to_offset[self.check_mask]
             if not self.check_address & 1:
                 addr += 8
-            return [Replacement(addr, 1)]
+            return [IntSpan(rom, addr, 1)]
         if self.check_address == 0x1616 and self.check_mask == 0x01:
-            return [Replacement(0x5A141, 1)]
+            return [IntSpan(rom, 0x5A141, 1)]
         if self.check_address == 0x1618 and self.check_mask == 0x02:
-            return [Replacement(0x22A9F, 1), Replacement(0x22AB3, 1)]
+            return [IntSpan(rom, 0x22A9F, 1), IntSpan(rom, 0x22AB3, 1)]
         if self.check_address == 0x161A and self.check_mask == 0x02:
-            return [Replacement(0x22226, 2), Replacement(0x22234, 2)]
-        raise Exception(f"Cannot get ROM locations for {self.check_address:4x}/{self.check_mask:2x}")
+            return [IntSpan(rom, 0x22226, 2), IntSpan(rom, 0x22234, 2)]
+        raise Exception(f"Cannot get ROM locations for {self.check_address:04x}/{self.check_mask:02x}")
 
 
 lab1_locations = [
@@ -57,7 +53,7 @@ lab1_locations = [
     LD(517_00_04, r.Lab1, "Herb Chest 3", 0x1621, 0x01),
     LD(517_00_05, r.Lab1, "100g Chest", 0x1621, 0x04),
     LD(517_00_06, r.Lab1, "Defeat Kaiser Krab", 0x163F, 0x02, i.KaiserKrab),
-    LD(517_00_07, r.Lab1, "Receive Dwarf's Key from Minister", 0x1616, 0x01, None, {i.KaiserKrab}),
+    LD(517_00_07, r.Lab1, "Receive Dwarf's Key from Minister", 0x1616, 0x01, rule=Has(i.KaiserKrab)),
     LD(517_01_00, r.Lab1Str, "Depoison Chest", 0x1621, 0x20),
     LD(517_01_01, r.Lab1Str, "Herb Chest", 0x1621, 0x40),
     LD(517_01_02, r.Lab1Str, "Wisdom Seed Chest", 0x1621, 0x80),
@@ -186,12 +182,12 @@ lab4_locations = [
     LD(517_14_07, r.Lab4, "Defeat Hand Eater 1", 0x1627, 0x20),
     LD(517_14_08, r.Lab4, "Defeat Hand Eater 2", 0x1627, 0x80),
     LD(517_14_09, r.Lab4, "Frost Armor Chest", 0x1626, 0x01),
-    LD(517_14_10, r.Lab4, "Defeat Dark Knight", 0x163D, 0x04),
+    LD(517_14_10, r.Lab4, "Defeat Dark Knight", 0x163D, 0x04, i.DarkKnight),
     LD(517_14_11, r.Lab4, "Cell Key Chest", 0x1627, 0x10),
     LD(517_14_12, r.Lab4, "Miracle Herb Chest", 0x1627, 0x04),
     LD(517_15_00, r.Lab4Orb, "Light Blade Chest", 0x1627, 0x01),
     LD(517_22_00, r.Lab4Cell, "Meet Jessa", 0x163F, 0x01, i.Jessa),
-    LD(517_22_01, r.Lab4Cell, "Receive Magic Ring from King", 0x161A, 0x02, None, {i.Jessa}),
+    LD(517_22_01, r.Lab4Cell, "Receive Magic Ring from King", 0x161A, 0x02, rule=Has(i.Jessa)),
 ]
 
 lab5_locations = [

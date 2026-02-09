@@ -37,7 +37,8 @@ flag_items = [
     ItemData(518_9_309, i.Tortolyde, None, ItemClassification.progression),
     ItemData(518_9_310, i.Doppler, None, ItemClassification.progression),
     ItemData(518_9_311, i.ShellBeast, None, ItemClassification.progression),
-    ItemData(518_9_312, i.DarkSol, None, ItemClassification.progression),
+    ItemData(518_9_312, i.DarkKnight, None, ItemClassification.progression),
+    ItemData(518_9_313, i.DarkSol, None, ItemClassification.progression),
 ]
 
 
