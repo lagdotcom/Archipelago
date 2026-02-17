@@ -4,7 +4,7 @@ from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar
 
 import settings
-from BaseClasses import Item, Location, MultiWorld, Region, Tutorial
+from BaseClasses import Item, Location, Region, Tutorial
 from rule_builder.rules import HasAll
 
 from ..AutoWorld import WebWorld, World
@@ -17,7 +17,7 @@ from .locations import all_locations, location_name_groups, locations_by_name
 from .Names import region_name
 from .options import DIST_SHUFFLE, SITDOptions
 from .regions import all_regions, regions_by_name
-from .rom import SITD_UE_HASH, SITDProcedurePatch, get_base_rom_path, write_tokens
+from .rom import SITD_UE_HASH, SITDProcedurePatch, write_tokens
 
 logger = logging.getLogger(game_name)
 
@@ -96,12 +96,6 @@ class SITDWorld(World):
 
     location_count: int = 0
 
-    @classmethod
-    def stage_assert_generate(cls, multiworld: MultiWorld):
-        rom_file = get_base_rom_path()
-        if not os.path.exists(rom_file):
-            raise FileNotFoundError(rom_file)
-
     def create_regions(self):
         multiworld = self.multiworld
         player = self.player
@@ -114,7 +108,7 @@ class SITDWorld(World):
         # make regions
         for name in goal.region_names:
             info = regions_by_name[name]
-            # logger.info("add region: [%s]", info.name)
+            logger.debug("add region: [%s]", info.name)
             region = Region(info.name, player, multiworld)
             multiworld.regions.append(region)
 
@@ -123,14 +117,14 @@ class SITDWorld(World):
             if not goal.has_region(info.region_name):
                 continue
             region = multiworld.get_region(info.region_name, player)
-            # logger.info("add location [%s] to region [%s]", info.name, region.name)
+            logger.debug("add location [%s] to region [%s]", info.name, region.name)
             loc = SITDLocation(player, info.name, info.id, region)
             if info.rule is not None:
                 self.set_rule(loc, info.rule)
             region.locations.append(loc)
             self.location_count += 1
 
-        # logger.info("create_regions: %d locations", self.location_count)
+        logger.debug("create_regions: %d locations", self.location_count)
 
         # make connections
         menu.connect(multiworld.get_region(region_name.Lab1, player))
@@ -143,7 +137,7 @@ class SITDWorld(World):
                 for exit_name, rule in info.exits.items():
                     if not goal.has_region(exit_name):
                         continue
-                    # logger.info("connect [%s] to [%s]", info.name, exit_name)
+                    logger.debug("connect [%s] to [%s]", info.name, exit_name)
                     destination = multiworld.get_region(exit_name, player)
                     entrance = region.connect(destination)
                     self.set_rule(entrance, rule)
@@ -165,7 +159,7 @@ class SITDWorld(World):
             for location in self.get_locations():
                 data = locations_by_name[location.name]
                 required.append(data.vanilla_item)
-            # logger.info("shuffle: added %d items", len(required))
+            logger.debug("shuffle: added %d items", len(required))
         else:
             goal = get_goal_data(options.goal.value)
             required = list(goal.required_item_names)
@@ -180,7 +174,7 @@ class SITDWorld(World):
                 filler_count = 0
             else:
                 filler_count = spaces - used_total
-            # logger.info("rando: %d useful, %d mimic, %d filler", useful_count, mimic_count, filler_count)
+            logger.debug("rando: %d useful, %d mimic, %d filler", useful_count, mimic_count, filler_count)
             optional += sample_repeating(self.random, useful_item_names, useful_count)
             optional += sample_repeating(self.random, mimic_item_names, mimic_count)
             optional += sample_repeating(self.random, filler_item_names, filler_count)
@@ -196,18 +190,18 @@ class SITDWorld(World):
                 item = self.create_item(data.fixed_item)
                 if item.name in required:
                     required.remove(item.name)
-                    # resolution = "removed from required"
+                    resolution = "removed from required"
                 elif item.name in optional:
                     optional.remove(item.name)
-                    # resolution = "removed from optional"
+                    resolution = "removed from optional"
                 else:
-                    _ = optional.pop()
-                    # resolution = f"removed {_} from optional"
-                # logger.info("fixed: [%s] at [%s]; %s", item.name, location.name, resolution)
+                    popped = optional.pop()
+                    resolution = f"removed {popped} from optional"
+                logger.debug("fixed: [%s] at [%s]; %s", item.name, location.name, resolution)
                 location.place_locked_item(item)
 
         for name in required + optional:
-            # logger.info("pool: added %s", name)
+            logger.debug("pool: added %s", name)
             self.multiworld.itempool.append(self.create_item(name))
 
     def get_filler_item_name(self):

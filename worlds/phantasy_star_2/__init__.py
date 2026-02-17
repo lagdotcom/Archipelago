@@ -5,7 +5,7 @@ from types import MappingProxyType
 from typing import Any, ClassVar, TextIO
 
 import settings
-from BaseClasses import CollectionState, Item, Location, MultiWorld, Region, Tutorial
+from BaseClasses import CollectionState, Item, Location, Region, Tutorial
 
 from ..AutoWorld import WebWorld, World
 from .characters import Char, Nei, character_names, vanilla_characters
@@ -37,7 +37,7 @@ from .options import (
 )
 from .rando import get_random_char_order, get_random_tech_choices
 from .regions import all_regions, regions_by_name
-from .rom import REV02_UE_HASH, PhSt2ProcedurePatch, get_base_rom_path, write_tokens
+from .rom import REV02_UE_HASH, PhSt2ProcedurePatch, write_tokens
 from .techs import techs_by_id, techs_by_name
 
 logger = logging.getLogger(game_name)
@@ -138,12 +138,6 @@ class PhSt2World(World):
     item_data: Sequence[ItemData] = ()
     write_items: bool = False
 
-    @classmethod
-    def stage_assert_generate(cls, multiworld: MultiWorld):
-        rom_file = get_base_rom_path()
-        if not os.path.exists(rom_file):
-            raise FileNotFoundError(rom_file)
-
     def create_regions(self):
         multiworld = self.multiworld
         player = self.player
@@ -156,7 +150,7 @@ class PhSt2World(World):
         # make regions
         for region_name in goal.region_names:
             info = regions_by_name[region_name]
-            # logger.debug('add region: [%s]', info.name)
+            logger.debug("add region: [%s]", info.name)
             region = Region(info.name, player, multiworld)
             multiworld.regions.append(region)
 
@@ -165,7 +159,7 @@ class PhSt2World(World):
             if not goal.has_region(info.region_name):
                 continue
             region = multiworld.get_region(info.region_name, player)
-            # logger.debug('add location [%s] to region [%s]', info.name, region.name)
+            logger.debug("add location [%s] to region [%s]", info.name, region.name)
             loc = PhSt2Location(player, info.name, info.id, region)
             loc.item_rule = self.get_item_rule(info.restricted_types)
             if info.rule is not None:
@@ -173,7 +167,7 @@ class PhSt2World(World):
             region.locations.append(loc)
             self.location_count += 1
 
-        # logger.info("create_regions: %d locations", self.location_count)
+        logger.debug("create_regions: %d locations", self.location_count)
 
         # make connections
         menu.connect(multiworld.get_region(area_name.Motavia, player))
@@ -186,7 +180,7 @@ class PhSt2World(World):
                 for exit_name, rule in info.exits.items():
                     if not goal.has_region(exit_name):
                         continue
-                    # logger.debug('connect [%s] to [%s]', info.name, exit_name)
+                    logger.debug("connect [%s] to [%s]", info.name, exit_name)
                     destination = multiworld.get_region(exit_name, player)
                     entrance = region.connect(destination)
                     self.set_rule(entrance, rule)
@@ -216,7 +210,7 @@ class PhSt2World(World):
             for location in self.get_locations():
                 data = locations_by_name[location.name]
                 required.append(data.vanilla_item)
-            # logger.info("shuffle: added %d items", len(required))
+            logger.debug("shuffle: added %d items", len(required))
         else:
             goal = get_goal_data(options.goal.value)
             required = list(goal.required_item_names)
@@ -224,7 +218,7 @@ class PhSt2World(World):
             spaces = self.location_count - len(required)
             useful_count = spaces * options.useful_items.value // 100
             filler_count = spaces - useful_count
-            # logger.info("rando: %d useful, %d filler", useful_count, filler_count)
+            logger.debug("rando: %d useful, %d filler", useful_count, filler_count)
             optional += sample_repeating(self.random, useful_item_names, useful_count)
             optional += sample_repeating(self.random, filler_item_names, filler_count)
 
@@ -239,18 +233,18 @@ class PhSt2World(World):
                 item = self.create_item(data.fixed_item)
                 if item.name in required:
                     required.remove(item.name)
-                    # resolution = "removed from required"
+                    resolution = "removed from required"
                 elif item.name in optional:
                     optional.remove(item.name)
-                    # resolution = "removed from optional"
+                    resolution = "removed from optional"
                 else:
                     _ = optional.pop()
-                    # resolution = f"removed {_} from optional"
-                # logger.info("fixed: [%s] at [%s]; %s", item.name, location.name, resolution)
+                    resolution = f"removed {_} from optional"
+                logger.debug("fixed: [%s] at [%s]; %s", item.name, location.name, resolution)
                 location.place_locked_item(item)
 
         for name in required + optional:
-            # logger.info("pool: added %s", name)
+            logger.debug("pool: added %s", name)
             self.multiworld.itempool.append(self.create_item(name))
 
     def get_filler_item_name(self):
