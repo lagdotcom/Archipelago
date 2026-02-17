@@ -187,7 +187,10 @@ class PhSt2Client(BizHawkClient):
             ctx.locations_checked.add(loc_id)
             name = ctx.location_names.lookup_in_game(loc_id)
             logger.debug(
-                f"New Check: {name} ({len(ctx.locations_checked)})/{len(ctx.missing_locations) + len(ctx.checked_locations)}"
+                "New Check: %s (%d)/%d",
+                name,
+                len(ctx.locations_checked),
+                len(ctx.missing_locations) + len(ctx.checked_locations),
             )
 
     def get_empty_inventory_slot(self):
@@ -217,14 +220,14 @@ class PhSt2Client(BizHawkClient):
         items_received = len(ctx.items_received)
         new_count = items_received - items_sent
         if new_count > 0:
-            logger.debug(f"Received {new_count} new items")
+            logger.debug("Received %d new items", new_count)
             for nwi in ctx.items_received[-new_count:]:
                 item = items_by_id[nwi.item]
                 if item.meseta is not None:
                     self.mesetas_pending += item.meseta
                 else:
                     self.items_queue.append(nwi.item)
-                logger.debug(f"... got {item.name}")
+                logger.debug("... got %s", item.name)
             await self.mem.write_span(ctx, received_item_storage, items_received)
 
     async def process_item_queue(self, ctx: "BizHawkClientContext"):
@@ -237,7 +240,7 @@ class PhSt2Client(BizHawkClient):
             if item.ram_flag:
                 if await self.mem.write_span(ctx, item.ram_flag, item.ram_value):
                     await bizhawk.display_message(ctx.bizhawk_ctx, f"Received item: {item.name}")
-                    logger.debug(f"Received flag-item {item.name}")
+                    logger.debug("Received flag-item %s", item.name)
                 else:
                     self.items_queue.append(item_id)
                     return  # leave it until next tick
@@ -252,7 +255,7 @@ class PhSt2Client(BizHawkClient):
 
                 if await self.mem.write_list(ctx, slot.write_list(item.code), slot.guard_list()):
                     await bizhawk.display_message(ctx.bizhawk_ctx, f"{slot.char_name} received item: {item.name}")
-                    logger.debug(f"Received item {item.name}")
+                    logger.debug("Received item %s", item.name)
                 else:
                     self.items_queue.append(item_id)
                     return  # leave it until next tick
@@ -265,7 +268,7 @@ class PhSt2Client(BizHawkClient):
         old_mesetas = current_money.get(self.mem)
         new_mesetas = min(999999, old_mesetas + amount)
 
-        logger.debug(f"Trying to send {amount} MST ({old_mesetas} -> {new_mesetas})")
+        logger.debug("Trying to send %d MST (%d -> %d)", amount, old_mesetas, new_mesetas)
         if await self.mem.write_span(ctx, current_money, new_mesetas):
             self.mesetas_pending = 0
             await bizhawk.display_message(ctx.bizhawk_ctx, f"Received {amount} MST")

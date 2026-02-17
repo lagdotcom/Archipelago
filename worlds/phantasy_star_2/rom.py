@@ -70,7 +70,6 @@ from .messages import (
     window_tokens,
 )
 from .options import (
-    CHARS_VANILLA,
     ENCOUNTER_DOUBLE,
     ENCOUNTER_EIGHTH,
     ENCOUNTER_HALF,
@@ -78,7 +77,6 @@ from .options import (
     ENCOUNTER_QUARTER,
     SPEED_NORMAL,
     SPEED_QUADRUPLE,
-    TECHS_VANILLA,
 )
 
 if TYPE_CHECKING:
@@ -1181,6 +1179,7 @@ def write_tokens(
             rolf_portrait_palette_op.format(first.portrait.palette_id.value),
         )
 
+    # patch item data
     if world.write_items:
         if len(world.item_data) != 128:
             raise Exception(f"world.item_data is {len(world.item_data)} long")
@@ -1196,14 +1195,14 @@ def write_tokens(
         patch.write_token(APTokenTypes.WRITE, ITEM_DATA_LIST, item_bytes)
 
     # patch tech learn lists
-    if world.options.randomise_chars.value != CHARS_VANILLA or world.options.randomise_chars != TECHS_VANILLA:
+    if world.write_tech_learn:
         offset = TECH_LEARN_TABLES
         for name in world.char_names:
             patch.write_token(APTokenTypes.WRITE, offset, bytes(world.map_techs[name]))
             patch.write_token(APTokenTypes.WRITE, offset + 16, bytes(world.battle_techs[name]))
             offset += 32
 
-    # patch items
+    # patch locations/items
     valid_locations = {loc.name for loc in world.get_locations()}
     for location_data in locations:
         if location_data.name not in valid_locations:
@@ -1212,7 +1211,7 @@ def write_tokens(
         if item is None:
             raise Exception(f"Location {location_data.name} has no item???")
         # don't bother replacing an item that is the same
-        if item.game == game_name and location_data.fixed_item == item.name:
+        if item.game == game_name and location_data.vanilla_item == item.name:
             continue
         item_hex = AP_ITEM_CODE
         item_data = None

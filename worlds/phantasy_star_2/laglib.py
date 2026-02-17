@@ -1,8 +1,12 @@
 import logging
 from collections.abc import Callable, Iterable, Mapping, Sequence
+from math import ceil
+from random import Random
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import worlds._bizhawk as bizhawk
+from Options import Option
+from worlds.AutoWorld import World
 
 if TYPE_CHECKING:
     from worlds._bizhawk.context import BizHawkClientContext
@@ -134,7 +138,7 @@ class MemoryManager:
                 else:
                     old_val = f"{o:02x}"
                     new_val = f"{n:02x}"
-                logger.debug(f"{addr:04x} {name}: {old_val} -> {new_val} ({o ^ n:02x} flipped)")
+                logger.debug("%04x %s: %s -> %s (%02x flipped)", addr, name, old_val, new_val, o ^ n)
 
 
 class IntSpan(MemorySpan):
@@ -157,6 +161,35 @@ class StrSpan(MemorySpan):
 
     def get(self, mem: MemoryManager):
         return self.parse(mem.get_bytes(self))
+
+
+# endregion
+
+
+# region Common functions
+
+
+def sample_repeating(random: Random, population: list[str], count: int):
+    repeats = ceil(count / len(population))
+    return random.sample(population * repeats, count)
+
+
+def use_re_gen_passthrough(world: World):
+    """
+    Help Universal Tracker generation by using options passed through slot_data.
+    """
+    re_gen_passthrough = getattr(world.multiworld, "re_gen_passthrough", {})
+    if re_gen_passthrough and world.game in re_gen_passthrough:
+        # Get the passed through slot data from the real generation
+        slot_data: dict[str, Any] = re_gen_passthrough[world.game]
+
+        slot_options: dict[str, Any] = slot_data.get("options", {})
+        # Set all your options here instead of getting them from the yaml
+        for key, value in slot_options.items():
+            opt: Option[Any] | None = getattr(world.options, key, None)
+            if opt is not None:
+                # You can also set .value directly but that won't work if you have OptionSets
+                setattr(world.options, key, opt.from_any(value))
 
 
 # endregion

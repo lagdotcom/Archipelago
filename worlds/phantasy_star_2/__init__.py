@@ -23,6 +23,7 @@ from .items import (
     items_with_codes,
     useful_item_names,
 )
+from .laglib import sample_repeating, use_re_gen_passthrough
 from .locations import all_locations, location_name_groups, locations_by_name
 from .options import (
     CHARS_SHUFFLE_EXCEPT_NEI,
@@ -119,6 +120,7 @@ class PhSt2World(World):
     settings: ClassVar[PhSt2Settings]  # type: ignore
     web = PhSt2Web()
     required_client_version = (0, 5, 0)
+    ut_can_gen_without_yaml = True
 
     item_name_to_id: ClassVar[dict[str, int]] = {item.name: item.id for item in all_items}
     item_name_groups = item_name_groups
@@ -126,6 +128,8 @@ class PhSt2World(World):
     location_name_to_id: ClassVar[dict[str, int]] = {data.name: data.id for data in all_locations}
     location_name_groups = location_name_groups
 
+    location_count: int = 0
+    write_tech_learn: bool = False
     battle_techs: Mapping[str, list[int]] = MappingProxyType({})
     map_techs: Mapping[str, list[int]] = MappingProxyType({})
     char_names: Sequence[str] = ()
@@ -167,6 +171,9 @@ class PhSt2World(World):
             if info.rule is not None:
                 self.set_rule(loc, info.rule)
             region.locations.append(loc)
+            self.location_count += 1
+
+        # logger.info("create_regions: %d locations", self.location_count)
 
         # make connections
         menu.connect(multiworld.get_region(area_name.Motavia, player))
@@ -200,71 +207,68 @@ class PhSt2World(World):
         item = items_by_name[name]
         return PhSt2Item(name, item.classification, item.id, self.player)
 
-    def get_fixed_location_for_item(self, name: str):
-        for location_data in all_locations:
-            if location_data.fixed_item == name:
-                return location_data
-        return None
-
-    def create_items(self):
+    def get_items_to_place(self):
         options = self.options
-        goal = get_goal_data(options.goal.value)
-        locked_items: list[str] = []
-        required_items: list[str] = []
-
-        # required_item_names = [item.name for item in required_items]
-        # place_early_names = set(required_item_names + reward_item_names)
-
-        for name in goal.required_item_names:
-            item = self.create_item(name)
-            fixed_location = self.get_fixed_location_for_item(name)
-            if fixed_location:
-                # logger.debug('force [%s] at [%s]', name, fixed_location.name)
-                self.get_location(fixed_location.name).place_locked_item(item)
-                locked_items.append(item.name)
-            else:
-                required_items.append(item.name)
+        required: list[str] = []
+        optional: list[str] = []
 
         if options.item_distribution.value == DIST_SHUFFLE:
             for location in self.get_locations():
-                if not location.item:
-                    data = locations_by_name[location.name]
-                    if data.fixed_item:
-                        item = self.create_item(data.fixed_item)
-                        # logger.debug('force [%s] at [%s]', name, fixed_location.name)
-                        location.place_locked_item(item)
-                        locked_items.append(item.name)
-                    else:
-                        data = locations_by_name[location.name]
-                        # logger.debug("shuffle: add [%s] to item pool" % data.vanilla_item)
-                        self.multiworld.itempool.append(self.create_item(data.vanilla_item))
-
+                data = locations_by_name[location.name]
+                required.append(data.vanilla_item)
+            # logger.info("shuffle: added %d items", len(required))
         else:
-            for required in required_items:
-                # logger.debug("required: add [%s] to item pool", required)
-                self.multiworld.itempool.append(self.create_item(required))
+            goal = get_goal_data(options.goal.value)
+            required = list(goal.required_item_names)
 
-            remaining = len(list(self.get_locations())) - len(required_items) - len(locked_items)
-            # print(f"remaining location count: {remaining}")
+            spaces = self.location_count - len(required)
+            useful_count = spaces * options.useful_items.value // 100
+            filler_count = spaces - useful_count
+            # logger.info("rando: %d useful, %d filler", useful_count, filler_count)
+            optional += sample_repeating(self.random, useful_item_names, useful_count)
+            optional += sample_repeating(self.random, filler_item_names, filler_count)
 
-            if options.useful_items.value > 0:
-                useful = useful_item_names[:]
-                useful_count = min(int(remaining * options.useful_items.value // 100), len(useful))
-                self.random.shuffle(useful)
-                for name in useful[:useful_count]:
-                    # logger.debug("useful: add [%s] to item pool", name)
-                    self.multiworld.itempool.append(self.create_item(name))
-                    remaining -= 1
+        return required, optional
 
-            for _ in range(remaining):
-                name = self.get_filler_item_name()
-                # logger.debug("filler: add [%s] to item pool", name)
-                self.multiworld.itempool.append(self.create_item(name))
+    def create_items(self):
+        required, optional = self.get_items_to_place()
+
+        for location in self.get_locations():
+            data = locations_by_name[location.name]
+            if data.fixed_item:
+                item = self.create_item(data.fixed_item)
+                if item.name in required:
+                    required.remove(item.name)
+                    # resolution = "removed from required"
+                elif item.name in optional:
+                    optional.remove(item.name)
+                    # resolution = "removed from optional"
+                else:
+                    _ = optional.pop()
+                    # resolution = f"removed {_} from optional"
+                # logger.info("fixed: [%s] at [%s]; %s", item.name, location.name, resolution)
+                location.place_locked_item(item)
+
+        for name in required + optional:
+            # logger.info("pool: added %s", name)
+            self.multiworld.itempool.append(self.create_item(name))
 
     def get_filler_item_name(self):
         return self.random.choice(filler_item_names)
 
+    def fill_slot_data(self) -> Mapping[str, Any]:
+        return {
+            "options": self.options.as_dict("goal"),
+        }
+
+    @staticmethod
+    def interpret_slot_data(slot_data: dict[str, Any]) -> dict[str, Any]:
+        # Trigger a regen in UT
+        return slot_data
+
     def generate_early(self):
+        use_re_gen_passthrough(self)
+
         self.item_data = items_with_codes[:]
 
         if self.options.randomise_chars.value != CHARS_VANILLA:
@@ -275,6 +279,7 @@ class PhSt2World(World):
             self.char_names = [char.name for char in self.char_order]
             self.write_chars = True
             self.write_items = True
+            self.write_tech_learn = True
         else:
             self.char_order = vanilla_characters
             self.char_names = character_names
@@ -286,6 +291,7 @@ class PhSt2World(World):
                 self.options.randomise_techs.value == TECHS_SENSIBLE_SHUFFLE,
             )
             self.write_chars = True
+            self.write_tech_learn = True
         else:
             self.map_techs = {
                 char.name: [techs_by_name[name].id for name in char.get_map_techs()] for char in self.char_order
