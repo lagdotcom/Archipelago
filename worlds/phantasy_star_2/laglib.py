@@ -3,7 +3,6 @@ from collections.abc import Callable, Iterable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, NamedTuple
 
 import worlds._bizhawk as bizhawk
-from BaseClasses import CollectionState
 
 if TYPE_CHECKING:
     from worlds._bizhawk.context import BizHawkClientContext
@@ -158,58 +157,6 @@ class StrSpan(MemorySpan):
 
     def get(self, mem: MemoryManager):
         return self.parse(mem.get_bytes(self))
-
-
-# endregion
-
-# region Logic
-
-
-type Predicate[T] = Callable[[T], bool]
-type PlayerPredicate[T] = Callable[[int], Predicate[T]]
-type StateCheck = PlayerPredicate[CollectionState]
-
-
-def always[T]() -> PlayerPredicate[T]:
-    return lambda player: lambda state: True
-
-
-def need_all[T](checkers: Iterable[PlayerPredicate[T]]) -> PlayerPredicate[T]:
-    def check_constructor(player: int):
-        def checker(state: T):
-            for ch in checkers:
-                if not ch(player)(state):
-                    return False
-            return True
-
-        return checker
-
-    return check_constructor
-
-
-def need_one[T](checkers: Iterable[PlayerPredicate[T]]) -> PlayerPredicate[T]:
-    def check_constructor(player: int):
-        def checker(state: T):
-            for ch in checkers:
-                if ch(player)(state):
-                    return True
-            return False
-
-        return checker
-
-    return check_constructor
-
-
-def has(name: str, count: int = 1) -> PlayerPredicate[CollectionState]:
-    return lambda player: lambda state: state.has(name, player, count)
-
-
-def has_all(names: set[str]) -> PlayerPredicate[CollectionState]:
-    return lambda player: lambda state: state.has_all(names, player)
-
-
-def has_all_counts(item_counts: Mapping[str, int]) -> PlayerPredicate[CollectionState]:
-    return lambda player: lambda state: state.has_all_counts(item_counts, player)
 
 
 # endregion

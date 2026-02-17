@@ -1,5 +1,8 @@
+from collections.abc import Callable
 from enum import Enum
 from typing import NamedTuple
+
+from rule_builder.rules import Has, HasAll, Rule
 
 from .constants import (
     TREASURE_CHEST_CONTENT_ARRAY,
@@ -10,14 +13,14 @@ from .Data import area_name as a
 from .Data import item_name as i
 from .enums import GameMode
 from .items import ItemType
-from .laglib import IntSpan, MemoryManager, Predicate
+from .laglib import IntSpan, MemoryManager
 from .laglib import genesis_ram as ram
 from .laglib import genesis_rom as rom
 
 
 class FlagCheck(NamedTuple):
     span: IntSpan
-    predicate: Predicate[int]
+    predicate: Callable[[int], bool]
 
     def __repr__(self):
         return repr(self.span) + "?"
@@ -46,7 +49,7 @@ class LocationData:
     rom_location: IntSpan | None = None
     fixed_item: str | None = None
     checks: list[FlagCheck]
-    required_items: set[str] | None = None
+    rule: Rule | None = None
     restricted_types: set[ItemType]
 
     def __init__(
@@ -74,12 +77,12 @@ class LocationData:
         self.fixed_item = item_name
         return self
 
-    def flag(self, address: int, predicate: Predicate[int] = equals1):
+    def flag(self, address: int, predicate: Callable[[int], bool] = equals1):
         self.checks.append(FlagCheck(IntSpan(ram, address, 1), predicate))
         return self
 
-    def requires(self, required_items: set[str]):
-        self.required_items = required_items
+    def set_rule(self, rule: Rule):
+        self.rule = rule
         return self
 
 
@@ -104,7 +107,7 @@ def flag(
     name: str,
     vanilla_item: str,
     ram_location: int,
-    predicate: Predicate[int] = equals1,
+    predicate: Callable[[int], bool] = equals1,
 ):
     return LocationData(LocationType.FLAG, id, region_name, name, vanilla_item, {ItemType.Flag}).flag(
         ram_location, predicate
@@ -118,7 +121,7 @@ def granted(
     vanilla_item: str,
     rom_address: int,
     ram_address: int,
-    predicate: Predicate[int] = equals1,
+    predicate: Callable[[int], bool] = equals1,
 ):
     return (
         LocationData(
@@ -153,8 +156,8 @@ esper_mansion_locations = [
     chest(452_00_14, a.Dezolis, "Esper Mansion - Prism", 0xE, i.Prism).flag(0xC743, lambda v: v == 3),
     chest(452_00_15, a.Dezolis, "Esper Mansion - NeiSword", 0xF, i.NeiSword)
     .flag(0xC744, lambda v: v == 1)
-    .requires(
-        {
+    .set_rule(
+        HasAll(
             i.NeiArmor,
             i.NeiCape,
             i.NeiCrown,
@@ -163,7 +166,7 @@ esper_mansion_locations = [
             i.NeiShield,
             i.NeiShot,
             i.NeiSlasher,
-        }
+        )
     ),
 ]
 
@@ -195,7 +198,7 @@ nido_locations = [
     chest(452_00_27, a.Nido, "Nido - Dimate", 0x1B, i.Dimate),
     chest(452_00_28, a.Nido, "Nido - Trimate", 0x1C, i.Trimate),
     chest(452_00_29, a.Nido, "Nido - 60 meseta", 0x1D, i.meseta(60)),
-    granted(452_01_03, a.Nido, "Nido - Teim", i.Teim, 0xDC6D, 0xC727).requires({i.Letter}),
+    granted(452_01_03, a.Nido, "Nido - Teim", i.Teim, 0xDC6D, 0xC727).set_rule(Has(i.Letter)),
 ]
 
 roron_locations = [
@@ -349,7 +352,7 @@ paseo_locations = [
         i.KeyTube,
         0xC4D1,
         0xC750,
-    ).requires({i.Recorder})
+    ).set_rule(Has(i.Recorder))
 ]
 
 
@@ -398,7 +401,7 @@ kueri_locations = [
         i.MarueraGum,
         0xC94F,
         0xC752,
-    ).requires({i.MarueraLeaf}),
+    ).set_rule(Has(i.MarueraLeaf)),
 ]
 
 gaira_locations = [granted(452_02_07, a.Gaira, "Gaira - Console", i.SpaceshipFlag, 0xBF89D, 0xC754)]

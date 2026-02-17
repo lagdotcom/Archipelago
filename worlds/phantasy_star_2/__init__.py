@@ -164,8 +164,8 @@ class PhSt2World(World):
             # logger.debug('add location [%s] to region [%s]', info.name, region.name)
             loc = PhSt2Location(player, info.name, info.id, region)
             loc.item_rule = self.get_item_rule(info.restricted_types)
-            if info.required_items:
-                loc.access_rule = self.get_access_rule(info.required_items)
+            if info.rule is not None:
+                self.set_rule(loc, info.rule)
             region.locations.append(loc)
 
         # make connections
@@ -176,12 +176,13 @@ class PhSt2World(World):
                 continue
             if len(info.exits):
                 region = multiworld.get_region(info.name, player)
-                for exit_name, make_checker in info.exits.items():
+                for exit_name, rule in info.exits.items():
                     if not goal.has_region(exit_name):
                         continue
                     # logger.debug('connect [%s] to [%s]', info.name, exit_name)
                     destination = multiworld.get_region(exit_name, player)
-                    region.connect(destination, None, make_checker(player))
+                    entrance = region.connect(destination)
+                    self.set_rule(entrance, rule)
 
     def get_access_rule(self, items: Iterable[str]) -> Callable[[CollectionState], bool]:
         capture = tuple(items)
