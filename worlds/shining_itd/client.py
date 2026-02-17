@@ -146,7 +146,10 @@ class SITDClient(BizHawkClient):
             ctx.locations_checked.add(loc_id)
             name = ctx.location_names.lookup_in_game(loc_id)
             logger.debug(
-                f"New Check: {name} ({len(ctx.locations_checked)})/{len(ctx.missing_locations) + len(ctx.checked_locations)}"
+                "New Check: %s (%d)/%d",
+                name,
+                len(ctx.locations_checked),
+                len(ctx.missing_locations) + len(ctx.checked_locations),
             )
 
     async def received_items_check(self, ctx: "BizHawkClientContext"):

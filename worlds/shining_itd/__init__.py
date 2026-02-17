@@ -1,6 +1,6 @@
 import logging
 import os
-from collections.abc import Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, ClassVar
 
 import settings
@@ -11,10 +11,11 @@ from ..AutoWorld import WebWorld, World
 from .client import SITDClient  # type: ignore  # noqa: F401
 from .constants import game_name
 from .goals import get_goal_data
-from .items import all_items, filler_item_names, item_name_groups, items_by_name, useful_item_names
-from .locations import all_locations, location_name_groups
+from .items import all_items, filler_item_names, item_name_groups, items_by_name, mimic_item_names, useful_item_names
+from .laglib import sample_repeating, use_re_gen_passthrough
+from .locations import all_locations, location_name_groups, locations_by_name
 from .Names import region_name
-from .options import SITDOptions
+from .options import DIST_SHUFFLE, SITDOptions
 from .regions import all_regions, regions_by_name
 from .rom import SITD_UE_HASH, SITDProcedurePatch, get_base_rom_path, write_tokens
 
@@ -85,6 +86,7 @@ class SITDWorld(World):
     settings: ClassVar[SITDSettings]  # type: ignore
     web = SITDWeb()
     required_client_version = (0, 5, 0)
+    ut_can_gen_without_yaml = True
 
     item_name_to_id: ClassVar[dict[str, int]] = {item.name: item.id for item in all_items}
     item_name_groups = item_name_groups
@@ -92,17 +94,13 @@ class SITDWorld(World):
     location_name_to_id: ClassVar[dict[str, int]] = {data.name: data.id for data in all_locations}
     location_name_groups = location_name_groups
 
-    # def __init__(self, multiworld: MultiWorld, player: int):
-    #     super().__init__(multiworld, player)
+    location_count: int = 0
 
     @classmethod
     def stage_assert_generate(cls, multiworld: MultiWorld):
         rom_file = get_base_rom_path()
         if not os.path.exists(rom_file):
             raise FileNotFoundError(rom_file)
-
-    # def generate_early(self):
-    #     return super().generate_early()
 
     def create_regions(self):
         multiworld = self.multiworld
@@ -116,7 +114,7 @@ class SITDWorld(World):
         # make regions
         for name in goal.region_names:
             info = regions_by_name[name]
-            # logger.debug("add region: [%s]", info.name)
+            # logger.info("add region: [%s]", info.name)
             region = Region(info.name, player, multiworld)
             multiworld.regions.append(region)
 
@@ -125,11 +123,14 @@ class SITDWorld(World):
             if not goal.has_region(info.region_name):
                 continue
             region = multiworld.get_region(info.region_name, player)
-            # logger.debug("add location [%s] to region [%s]", info.name, region.name)
+            # logger.info("add location [%s] to region [%s]", info.name, region.name)
             loc = SITDLocation(player, info.name, info.id, region)
             if info.rule is not None:
                 self.set_rule(loc, info.rule)
             region.locations.append(loc)
+            self.location_count += 1
+
+        # logger.info("create_regions: %d locations", self.location_count)
 
         # make connections
         menu.connect(multiworld.get_region(region_name.Lab1, player))
@@ -142,7 +143,7 @@ class SITDWorld(World):
                 for exit_name, rule in info.exits.items():
                     if not goal.has_region(exit_name):
                         continue
-                    # logger.debug("connect [%s] to [%s]", info.name, exit_name)
+                    # logger.info("connect [%s] to [%s]", info.name, exit_name)
                     destination = multiworld.get_region(exit_name, player)
                     entrance = region.connect(destination)
                     self.set_rule(entrance, rule)
@@ -155,53 +156,75 @@ class SITDWorld(World):
         item = items_by_name[name]
         return SITDItem(name, item.classification, item.id, self.player)
 
-    def get_fixed_location_for_item(self, name: str):
-        for location_data in all_locations:
-            if location_data.fixed_item == name:
-                return location_data
-        return None
+    def get_items_to_place(self):
+        options = self.options
+        required: list[str] = []
+        optional: list[str] = []
+
+        if options.item_distribution.value == DIST_SHUFFLE:
+            for location in self.get_locations():
+                data = locations_by_name[location.name]
+                required.append(data.vanilla_item)
+            # logger.info("shuffle: added %d items", len(required))
+        else:
+            goal = get_goal_data(options.goal.value)
+            required = list(goal.required_item_names)
+
+            spaces = self.location_count - len(required)
+            useful_count = spaces * options.useful_items.value // 100
+            mimic_count = spaces * options.mimic_items.value // 100
+            used_total = useful_count + mimic_count
+            if used_total > spaces:
+                useful_count = useful_count * spaces // used_total
+                mimic_count = spaces - useful_count
+                filler_count = 0
+            else:
+                filler_count = spaces - used_total
+            # logger.info("rando: %d useful, %d mimic, %d filler", useful_count, mimic_count, filler_count)
+            optional += sample_repeating(self.random, useful_item_names, useful_count)
+            optional += sample_repeating(self.random, mimic_item_names, mimic_count)
+            optional += sample_repeating(self.random, filler_item_names, filler_count)
+
+        return required, optional
 
     def create_items(self):
-        options = self.options
-        goal = get_goal_data(options.goal.value)
-        added_items: list[str] = []
+        required, optional = self.get_items_to_place()
 
-        # required_item_names = [item.name for item in required_items]
-        # place_early_names = set(required_item_names + reward_item_names)
+        for location in self.get_locations():
+            data = locations_by_name[location.name]
+            if data.fixed_item:
+                item = self.create_item(data.fixed_item)
+                if item.name in required:
+                    required.remove(item.name)
+                    # resolution = "removed from required"
+                elif item.name in optional:
+                    optional.remove(item.name)
+                    # resolution = "removed from optional"
+                else:
+                    _ = optional.pop()
+                    # resolution = f"removed {_} from optional"
+                # logger.info("fixed: [%s] at [%s]; %s", item.name, location.name, resolution)
+                location.place_locked_item(item)
 
-        for name in goal.required_item_names:
-            item = self.create_item(name)
-            fixed_location = self.get_fixed_location_for_item(name)
-            if fixed_location:
-                # logger.debug("force [%s] at [%s]", name, fixed_location.name)
-                self.multiworld.get_location(fixed_location.name, self.player).place_locked_item(item)
-            else:
-                # logger.debug("required: add [%s] to item pool", item.name)
-                self.multiworld.itempool.append(item)
-            added_items.append(item.name)
-
-        remaining = len(list(self.get_locations())) - len(added_items)
-        # logger.debug(f"remaining location count: {remaining}")
-
-        if options.useful_items.value > 0:
-            useful = useful_item_names[:]
-            useful_count = min(int(remaining * options.useful_items.value // 100), len(useful))
-            self.random.shuffle(useful)
-            for name in useful[:useful_count]:
-                # logger.debug("useful: add [%s] to item pool", name)
-                self.multiworld.itempool.append(self.create_item(name))
-                remaining -= 1
-
-        for _ in range(remaining):
-            name = self.get_filler_item_name()
-            # logger.debug("filler: add [%s] to item pool", name)
+        for name in required + optional:
+            # logger.info("pool: added %s", name)
             self.multiworld.itempool.append(self.create_item(name))
 
     def get_filler_item_name(self):
         return self.random.choice(filler_item_names)
 
-    # def fill_slot_data(self) -> Mapping[str, Any]:
-    #     return self.options.as_dict()
+    def fill_slot_data(self) -> Mapping[str, Any]:
+        return {
+            "options": self.options.as_dict("goal"),
+        }
+
+    @staticmethod
+    def interpret_slot_data(slot_data: dict[str, Any]) -> dict[str, Any]:
+        # Trigger a regen in UT
+        return slot_data
+
+    def generate_early(self):
+        use_re_gen_passthrough(self)
 
     def generate_output(self, output_directory: str) -> None:
         patch = SITDProcedurePatch(player=self.player, player_name=self.multiworld.player_name[self.player])

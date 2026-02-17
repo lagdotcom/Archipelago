@@ -41,6 +41,22 @@ class XPMultiplier(Range):
     default = 2
 
 
+DIST_SHUFFLE = 0
+DIST_RANDO = 1
+
+
+class ItemDistribution(Choice):
+    """
+    Shuffle: Shuffle vanilla item placement.
+    Rando: Randomly add items to the game.
+    """
+
+    display_name = "Item Distribution"
+    default = DIST_SHUFFLE
+    option_shuffle = DIST_SHUFFLE
+    option_rando = DIST_RANDO
+
+
 class UsefulItems(Range):
     """
     Percentage of items in the pool that are 'useful'.
@@ -52,7 +68,16 @@ class UsefulItems(Range):
     default = 75
 
 
-# TODO mimic percentage?
+class MimicItems(Range):
+    """
+    Percentage of items in the pool that are 'mimics'.
+    """
+
+    display_name = "Mimic Items"
+    range_start = 0
+    range_end = 100
+    default = 10
+
 
 # TODO death link lol
 
@@ -62,4 +87,6 @@ class SITDOptions(PerGameCommonOptions):
     goal: Goal
     gold_multi: GoldMultiplier
     xp_multi: XPMultiplier
+    item_distribution: ItemDistribution
     useful_items: UsefulItems
+    mimic_items: MimicItems

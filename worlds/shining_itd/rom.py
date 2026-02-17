@@ -565,11 +565,11 @@ def write_tokens(world: "SITDWorld", patch: SITDProcedurePatch, locations: Itera
         if location_data.name not in valid_locations:
             continue
         item = world.get_location(location_data.name).item
-        item_hex = AP_ITEM_CODE
         if item is not None:
             # don't bother replacing an item that is the same
-            if location_data.fixed_item == item.name:
+            if item.game == game_name and location_data.vanilla_item == item.name:
                 continue
+            item_hex = AP_ITEM_CODE
             if item.code is not None:
                 if item.code in items_by_id:
                     item_data = items_by_id[item.code]
