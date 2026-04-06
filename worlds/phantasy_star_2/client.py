@@ -35,7 +35,7 @@ from .constants import (
 from .enums import GameMode  # , MapID, SceneID, ScriptID, WinID
 from .goals import GoalData, get_goal_data
 from .items import items_by_id
-from .laglib import MemoryManager
+from .laglib import IntSpan, MemoryManager
 from .laglib import genesis_ram as ram
 from .locations import all_locations, locations_by_id
 
@@ -60,12 +60,24 @@ class InventorySlot(NamedTuple):
         ]
 
 
+class PendingFlag(NamedTuple):
+    name: str
+    span: IntSpan
+    value: int
+
+
+class PendingItem(NamedTuple):
+    name: str
+    code: int
+
+
 class PhSt2Client(BizHawkClient):
     game = game_name
     system = "GEN"
     patch_suffix = ".apphst2"
 
-    items_queue: deque[int]
+    flags_queue: deque[PendingFlag]
+    items_queue: deque[PendingItem]
     goal: GoalData
     mesetas_pending: int
     prev_flags = None
@@ -74,6 +86,7 @@ class PhSt2Client(BizHawkClient):
 
     def __init__(self):
         super().__init__()
+        self.flags_queue = deque()
         self.items_queue = deque()
         self.mesetas_pending = 0
         self.showing_inventory_full_message = False
@@ -209,7 +222,7 @@ class PhSt2Client(BizHawkClient):
             self.showing_inventory_full_message = True
             await bizhawk.display_message(ctx.bizhawk_ctx, "Inventory is full!")
 
-    async def reset_inventory_full_message(self, ctx: "BizHawkClientContext"):
+    def reset_inventory_full_message(self):
         self.showing_inventory_full_message = False
 
     async def received_items_check(self, ctx: "BizHawkClientContext"):
@@ -225,40 +238,47 @@ class PhSt2Client(BizHawkClient):
                 item = items_by_id[nwi.item]
                 if item.meseta is not None:
                     self.mesetas_pending += item.meseta
+                elif item.ram_flag:
+                    self.flags_queue.append(PendingFlag(item.name, item.ram_flag, item.ram_value))
+                elif item.code is not None:
+                    self.items_queue.append(PendingItem(item.name, item.code))
                 else:
-                    self.items_queue.append(nwi.item)
+                    logger.warning("received non-code item: %s", item.name)
                 logger.debug("... got %s", item.name)
             await self.mem.write_span(ctx, received_item_storage, items_received)
+
+    async def process_flag_queue(self, ctx: "BizHawkClientContext"):
+        if not self.is_playing():
+            return
+
+        while len(self.flags_queue):
+            flag = self.flags_queue.popleft()
+            if await self.mem.write_span(ctx, flag.span, flag.value):
+                await bizhawk.display_message(ctx.bizhawk_ctx, f"Received item: {flag.name}")
+                logger.debug("Received flag-item %s", flag.name)
+            else:
+                self.flags_queue.append(flag)
+                return  # leave it until next tick
 
     async def process_item_queue(self, ctx: "BizHawkClientContext"):
         if not self.is_playing():
             return
 
-        while len(self.items_queue):
-            item_id = self.items_queue.popleft()
-            item = items_by_id[item_id]
-            if item.ram_flag:
-                if await self.mem.write_span(ctx, item.ram_flag, item.ram_value):
-                    await bizhawk.display_message(ctx.bizhawk_ctx, f"Received item: {item.name}")
-                    logger.debug("Received flag-item %s", item.name)
-                else:
-                    self.items_queue.append(item_id)
-                    return  # leave it until next tick
-            elif item.code is None:
-                logger.warning(f"Don't know how to reward non-code item: {item.name}")
-            else:
+        slot = self.get_empty_inventory_slot()
+        while len(self.items_queue) and slot is not None:
+            item = self.items_queue.popleft()
+            if await self.mem.write_list(ctx, slot.write_list(item.code), slot.guard_list()):
+                await bizhawk.display_message(ctx.bizhawk_ctx, f"{slot.char_name} received item: {item.name}")
+                logger.debug("Received item %s", item.name)
                 slot = self.get_empty_inventory_slot()
-                if slot is None:
-                    await self.show_inventory_full_message(ctx)
-                    continue
-                await self.reset_inventory_full_message(ctx)
+            else:
+                self.items_queue.append(item)
+                return  # leave it until next tick
 
-                if await self.mem.write_list(ctx, slot.write_list(item.code), slot.guard_list()):
-                    await bizhawk.display_message(ctx.bizhawk_ctx, f"{slot.char_name} received item: {item.name}")
-                    logger.debug("Received item %s", item.name)
-                else:
-                    self.items_queue.append(item_id)
-                    return  # leave it until next tick
+        if len(self.items_queue):
+            await self.show_inventory_full_message(ctx)
+        else:
+            self.reset_inventory_full_message()
 
     async def process_pending_mesetas(self, ctx: "BizHawkClientContext"):
         amount = self.mesetas_pending

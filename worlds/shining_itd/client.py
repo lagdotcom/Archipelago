@@ -46,6 +46,11 @@ class Inventory(NamedTuple):
         return InventorySlot(self.char_name, self.start_address + index)
 
 
+class PendingItem(NamedTuple):
+    name: str
+    code: int
+
+
 inventories = [Inventory("Hero", 0x16EA, 16), Inventory("Milo", 0x16FA, 16), Inventory("Pyra", 0x170A, 16)]
 
 
@@ -54,7 +59,7 @@ class SITDClient(BizHawkClient):
     system = "GEN"
     patch_suffix = ".apsitd"
 
-    items_queue: deque[int]
+    items_queue: deque[PendingItem]
     gold_pending: int
     prev_flags = None
     showing_inventory_full_message: bool
@@ -165,8 +170,10 @@ class SITDClient(BizHawkClient):
                 item = items_by_id[nwi.item]
                 if item.gold_pieces > 0:
                     self.gold_pending += item.gold_pieces
+                elif item.code is not None:
+                    self.items_queue.append(PendingItem(item.name, item.code))
                 else:
-                    self.items_queue.append(nwi.item)
+                    logger.warning("received non-code item: %s", item.name)
                 logger.debug(f"... got {item.name}")
             await self.mem.write_span(ctx, received_item_storage, items_received)
 
@@ -185,31 +192,28 @@ class SITDClient(BizHawkClient):
             self.showing_inventory_full_message = True
             await bizhawk.display_message(ctx.bizhawk_ctx, "Inventory is full!")
 
-    async def reset_inventory_full_message(self, ctx: "BizHawkClientContext"):
+    def reset_inventory_full_message(self):
         self.showing_inventory_full_message = False
 
     async def process_item_queue(self, ctx: "BizHawkClientContext"):
         if not self.is_playing():
             return
 
-        while len(self.items_queue):
-            item_id = self.items_queue.popleft()
-            item = items_by_id[item_id]
-            if item.code is None:
-                logger.warning(f"Don't know how to reward non-code item: {item.name}")
-            else:
+        slot = self.get_empty_inventory_slot()
+        while len(self.items_queue) and slot is not None:
+            item = self.items_queue.popleft()
+            if await self.mem.write_span(ctx, IntSpan(ram, slot.address, 1), item.code):
+                await bizhawk.display_message(ctx.bizhawk_ctx, f"{slot.char_name} received item: {item.name}")
+                logger.debug(f"Received item {item.name}")
                 slot = self.get_empty_inventory_slot()
-                if slot is None:
-                    await self.show_inventory_full_message(ctx)
-                    return
-                await self.reset_inventory_full_message(ctx)
+            else:
+                self.items_queue.append(item)
+                return  # leave it until next tick
 
-                if await self.mem.write_span(ctx, IntSpan(ram, slot.address, 1), item.code):
-                    await bizhawk.display_message(ctx.bizhawk_ctx, f"{slot.char_name} received item: {item.name}")
-                    logger.debug(f"Received item {item.name}")
-                else:
-                    self.items_queue.append(item_id)
-                    return  # leave it until next tick
+        if len(self.items_queue):
+            await self.show_inventory_full_message(ctx)
+        else:
+            self.reset_inventory_full_message()
 
     async def process_pending_gold(self, ctx: "BizHawkClientContext"):
         amount = self.gold_pending

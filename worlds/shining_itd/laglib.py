@@ -19,6 +19,22 @@ logger = logging.getLogger("laglib")
 genesis_rom = "MD CART"
 genesis_ram = "68K RAM"
 
+genesis_file_types = [
+    ("GEN", [".gen"]),
+    ("BIN", [".bin"]),
+    ("SMD", [".smd"]),
+    ("68K", [".68k"]),
+]
+
+nes_ram = "RAM"
+nes_sram = "Battery RAM"
+nes_rom = "PRG ROM"
+
+nes_file_types = [
+    ("NES", [".nes"]),
+    ("UNH", [".unh"]),
+]
+
 # endregion
 
 
@@ -139,6 +155,25 @@ class MemoryManager:
                     old_val = f"{o:02x}"
                     new_val = f"{n:02x}"
                 logger.debug("%04x %s: %s -> %s (%02x flipped)", addr, name, old_val, new_val, o ^ n)
+
+
+class MemoryTransaction:
+    def __init__(self, manager: MemoryManager):
+        self.manager = manager
+        self.writes: list[tuple[int, bytes, str]] = []
+        self.guards: list[tuple[int, bytes, str]] = []
+
+    def write_span(self, span: "IntSpan", new_value: int):
+        old_value = span.get(self.manager)
+        self.writes += [span.as_write(new_value)]
+        self.guards += [span.as_write(old_value)]
+
+    def write_list(self, write_list: Sequence[tuple[int, bytes, str]], guard_list: Sequence[tuple[int, bytes, str]]):
+        self.writes += write_list
+        self.guards += guard_list
+
+    async def commit(self, ctx: "BizHawkClientContext"):
+        return await self.manager.write_list(ctx, self.writes, self.guards)
 
 
 class IntSpan(MemorySpan):
