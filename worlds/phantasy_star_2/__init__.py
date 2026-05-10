@@ -5,7 +5,7 @@ from types import MappingProxyType
 from typing import Any, ClassVar, TextIO
 
 import settings
-from BaseClasses import CollectionState, Item, Location, Region, Tutorial
+from BaseClasses import CollectionState, Item, ItemClassification, Location, Region, Tutorial
 
 from ..AutoWorld import WebWorld, World
 from .characters import Char, Nei, character_names, vanilla_characters
@@ -161,7 +161,7 @@ class PhSt2World(World):
             region = multiworld.get_region(info.region_name, player)
             logger.debug("add location [%s] to region [%s]", info.name, region.name)
             loc = PhSt2Location(player, info.name, info.id, region)
-            loc.item_rule = self.get_item_rule(info.restricted_types)
+            loc.item_rule = self.get_item_rule(info.restricted_types, info.permanently_missable)
             if info.rule is not None:
                 self.set_rule(loc, info.rule)
             region.locations.append(loc)
@@ -189,9 +189,17 @@ class PhSt2World(World):
         capture = tuple(items)
         return lambda state: state.has_all(capture, self.player)
 
-    def get_item_rule(self, types: Iterable[ItemType]) -> Callable[[Item], bool]:
+    def get_item_rule(self, types: Iterable[ItemType], permanently_missable: bool):
         capture = tuple(types)
-        return lambda item: get_item_type(item) in capture
+
+        def can_have_item(item: Item):
+            if get_item_type(item) not in capture:
+                return False
+            if permanently_missable and ItemClassification.progression in item.classification:
+                return False
+            return True
+
+        return can_have_item
 
     def set_rules(self):
         goal = get_goal_data(self.options.goal.value)

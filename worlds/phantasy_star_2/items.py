@@ -1481,7 +1481,8 @@ consumable_items = [
 ]
 
 junk_items = [
-    ItemData(452_1_012, ItemType.Item, i.PlasmaRing, ItemClassification.filler, 0xC, flags=ItemFlags.Map),
+    # TODO kinda dangerous to give this to players I think?
+    # ItemData(452_1_012, ItemType.Item, i.PlasmaRing, ItemClassification.filler, 0xC, flags=ItemFlags.Map),
     ItemData(
         452_1_041,
         ItemType.Item,

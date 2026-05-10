@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from typing import Any
 
 from Options import (
     Choice,
@@ -6,9 +7,11 @@ from Options import (
     OptionGroup,
     PerGameCommonOptions,
     Range,
+    StartInventoryPool,
     Toggle,
 )
 
+from .Data import item_name as i
 from .goals import GOAL_MOTHER_BRAIN, GOAL_NEIFIRST
 
 
@@ -190,6 +193,7 @@ class NeiWearOwnStuff(Toggle):
 
 @dataclass
 class PhSt2Options(PerGameCommonOptions):
+    start_inventory_from_pool: StartInventoryPool
     goal: Goal
     starting_meseta: StartingMeseta
     item_distribution: ItemDistribution
@@ -222,7 +226,7 @@ option_groups = [
     ),
 ]
 
-options_presets = {
+options_presets: dict[str, dict[str, Any]] = {
     "vanilla": {
         "goal": GOAL_MOTHER_BRAIN,
         "starting_meseta": 200,
@@ -238,6 +242,7 @@ options_presets = {
         "nei_better_armour": 0,
         "nei_lac_dagger": 0,
         "nei_wear_own_stuff": 0,
+        "start_inventory_from_pool": {},
     },
     "quick neifirst": {
         "goal": GOAL_NEIFIRST,
@@ -254,5 +259,27 @@ options_presets = {
         "nei_better_armour": 1,
         "nei_lac_dagger": 1,
         "nei_wear_own_stuff": 1,
+        "start_inventory_from_pool": {},
+    },
+    "open world": {
+        "goal": GOAL_MOTHER_BRAIN,
+        "starting_meseta": 200,
+        "item_distribution": DIST_SHUFFLE,
+        "useful_items": 0,
+        "randomise_techs": TECHS_SENSIBLE_SHUFFLE,
+        "randomise_chars": CHARS_VANILLA,
+        "meseta_multi": 2,
+        "xp_multi": 2,
+        "encounter_rate": ENCOUNTER_HALF,
+        "movement_speed": SPEED_DOUBLE,
+        "lac_dagger": 1,
+        "nei_better_armour": 1,
+        "nei_lac_dagger": 1,
+        "nei_wear_own_stuff": 1,
+        "start_inventory_from_pool": {
+            i.JetScooterFlag: 1,
+            i.SpaceshipFlag: 1,
+            i.Prism: 1,
+        },
     },
 }

@@ -51,6 +51,7 @@ class LocationData:
     checks: list[FlagCheck]
     rule: Rule | None = None
     restricted_types: set[ItemType]
+    permanently_missable: bool = False
 
     def __init__(
         self,
@@ -60,6 +61,7 @@ class LocationData:
         name: str,
         vanilla_item: str,
         restricted_types: set[ItemType],
+        permanently_missable: bool = False,
     ):
         self.type = type
         self.id = id
@@ -67,6 +69,7 @@ class LocationData:
         self.name = name
         self.vanilla_item = vanilla_item
         self.restricted_types = restricted_types
+        self.permanently_missable = permanently_missable
         self.checks = []
 
     def at(self, span: IntSpan):
@@ -86,7 +89,9 @@ class LocationData:
         return self
 
 
-def chest(id: int, region_name: str, name: str, chest_index: int, vanilla_item: str):
+def chest(
+    id: int, region_name: str, name: str, chest_index: int, vanilla_item: str, permanently_missable: bool = False
+):
     return (
         LocationData(
             LocationType.CHEST,
@@ -95,6 +100,7 @@ def chest(id: int, region_name: str, name: str, chest_index: int, vanilla_item: 
             name,
             vanilla_item,
             {ItemType.Garbage, ItemType.Item, ItemType.Money, ItemType.FlagAsItem},
+            permanently_missable,
         )
         .at(IntSpan(rom, TREASURE_CHEST_CONTENT_ARRAY + chest_index * 2, 2))
         .flag(chest_flags.address + chest_index)
@@ -292,13 +298,13 @@ bio_systems_lab_locations = [
 ]
 
 climatrol_locations = [
-    chest(452_00_64, a.Climatrol, "Climatrol - Jwl Ribbon", 0x40, i.JwlRibbon),
-    chest(452_00_65, a.Climatrol, "Climatrol - FiberVest", 0x41, i.FiberVest),
-    chest(452_00_66, a.Climatrol, "Climatrol - KnifeBoots", 0x42, i.KnifeBoots),
-    chest(452_00_67, a.Climatrol, "Climatrol - Sil Ribbon", 0x43, i.SilRibbon),
-    chest(452_00_68, a.Climatrol, "Climatrol - Sandals", 0x44, i.Sandals),
-    chest(452_00_69, a.Climatrol, "Climatrol - Laser Bar", 0x45, i.LaserBar),
-    chest(452_00_70, a.Climatrol, "Climatrol - Ceram Bar", 0x46, i.CeramBar),
+    chest(452_00_64, a.Climatrol, "Climatrol - Jwl Ribbon", 0x40, i.JwlRibbon, permanently_missable=True),
+    chest(452_00_65, a.Climatrol, "Climatrol - FiberVest", 0x41, i.FiberVest, permanently_missable=True),
+    chest(452_00_66, a.Climatrol, "Climatrol - KnifeBoots", 0x42, i.KnifeBoots, permanently_missable=True),
+    chest(452_00_67, a.Climatrol, "Climatrol - Sil Ribbon", 0x43, i.SilRibbon, permanently_missable=True),
+    chest(452_00_68, a.Climatrol, "Climatrol - Sandals", 0x44, i.Sandals, permanently_missable=True),
+    chest(452_00_69, a.Climatrol, "Climatrol - Laser Bar", 0x45, i.LaserBar, permanently_missable=True),
+    chest(452_00_70, a.Climatrol, "Climatrol - Ceram Bar", 0x46, i.CeramBar, permanently_missable=True),
     flag(452_02_05, a.Climatrol, "Climatrol - Neifirst", i.NeifirstFlag, 0xC735).fix(i.NeifirstFlag),
     # beating Neifirst immediately sets c710=3 and c737=1
     # after the 'Nei is really dead' scene, sets c710=4 and c711=3
