@@ -79,6 +79,9 @@ class ItemData:
         self.ag = ag  # TODO write this to ROM
         self.use_tech = use_tech
 
+    def __repr__(self) -> str:
+        return f"{self.name}: cl={self.classification} code={self.code}"
+
     @property
     def code_as_int(self):
         if self.code is None:
@@ -1481,8 +1484,6 @@ consumable_items = [
 ]
 
 junk_items = [
-    # TODO kinda dangerous to give this to players I think?
-    # ItemData(452_1_012, ItemType.Item, i.PlasmaRing, ItemClassification.filler, 0xC, flags=ItemFlags.Map),
     ItemData(
         452_1_041,
         ItemType.Item,
@@ -1495,6 +1496,12 @@ junk_items = [
     ),
     ItemData(452_1_123, ItemType.Item, i.PrsnClths, ItemClassification.filler, 0x7B, S.Body, df=2, price=100),
     ItemData(452_2_000, ItemType.Garbage, i.Garbage, ItemClassification.filler),
+]
+
+
+dangerous_items = [
+    # not sure if this is _really_ bad, but it can't be good
+    ItemData(452_1_012, ItemType.Item, i.PlasmaRing, ItemClassification.filler, 0xC, flags=ItemFlags.Map),
 ]
 
 meseta_items = [
@@ -1525,7 +1532,7 @@ item_name_groups = {
     "Quest Flags": {item.name for item in flag_items},
 }
 
-all_items = required_items + useful_items + filler_items
+all_items = required_items + useful_items + filler_items + dangerous_items
 items_by_name = {item.name: item for item in all_items}
 items_by_id = {item.id: item for item in all_items}
 

@@ -3,11 +3,11 @@ from dataclasses import dataclass
 from types import TracebackType
 from typing import NamedTuple
 
-from Data import area_name as a
-from Data import item_name as i
 from rule_builder.rules import Rule
 
 from .constants import rom, sram
+from .Data import area_name as a
+from .Data import item_name as i
 from .items import ItemType
 from .laglib import IntSpan, MemoryManager
 
