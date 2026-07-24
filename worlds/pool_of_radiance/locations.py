@@ -117,55 +117,60 @@ class Region:
 
 new_phlan_locations: list[LocationData] = []
 with Region(1_000_000, a.NewPhlan, new_phlan_locations) as region:
-    region.add("Slums Cleared", i.SlumsCleared, [ram_eq(0x76CD, 0xFE)], fixed_item=i.SlumsCleared)
+    region.add(
+        "Slums Cleared Reward",
+        i.SlumsCleared,
+        [ram_eq(0x76CD, 0xFF)],
+        fixed_item=i.SlumsCleared,
+        rule=Has(i.SlumsFightCredit, 25),
+    )
 
 
 slums_locations: list[LocationData] = []
 with Region(1_001_000, a.Slums, slums_locations) as region:
-    region.add(
-        "Cleared",
-        i.Nothing,
-        [ram_eq(0x76CD, 0xFF)],
-        fixed_item=i.Nothing,
-        rule=Has(i.SlumsFightCredit, 25),
-    )
+    region.add("Cleared", i.Nothing, [ram_eq(0x76CD, 0xFE)], fixed_item=i.Nothing)
 
     for x in range(1, 25 + 1):
-        region.add(f"Done {x} fights", i.SlumsFightCredit, [ram_eq(0x7692, x)], fixed_item=i.SlumsFightCredit)
+        region.add(
+            f"Done {x} fight{'s' if x > 1 else ''}",
+            i.SlumsFightCredit,
+            [ram_eq(0x7692, x)],
+            fixed_item=i.SlumsFightCredit,
+        )
 
     region.add(
         "Fought Shop Guards",
         i.Treasure06,
         [ram_nz(0x766A)],
-        rom_location=rom(36, 0xAC94),
+        rom_location=rom(37, 0xAC94),
         restricted_types={ItemType.Treasure, ItemType.Nothing},
     )
     region.add(
         "Killed Gypsy",
         i.Nothing,
         [ram_nz(0x7694)],
-        rom_location=rom(36, 0xA28D),
+        rom_location=rom(37, 0xA28D),
         restricted_types={ItemType.Treasure, ItemType.Nothing},
     )
     region.add(
         "Floorboard Treasure",
         i.Treasure05,
         [ram_nz(0x7695)],
-        rom_location=rom(36, 0xAA6E),
+        rom_location=rom(37, 0xAA6E),
         restricted_types={ItemType.Treasure, ItemType.Nothing},
     )
     region.add(
         "Dirty Room Treasure",
         i.Treasure14,
         [ram_nz(0x76DE)],
-        rom_location=rom(36, 0x9E73),
+        rom_location=rom(37, 0x9E73),
         restricted_types={ItemType.Treasure, ItemType.Nothing},
     )
     region.add(
         "Secret Treasure Room",
         i.Treasure14,
         [ram_nz(0x76E8)],
-        rom_location=rom(36, 0xA7BC),
+        rom_location=rom(37, 0xA7BC),
         restricted_types={ItemType.Treasure, ItemType.Nothing},
     )
     region.add(
@@ -176,54 +181,60 @@ with Region(1_001_000, a.Slums, slums_locations) as region:
         restricted_types={ItemType.Treasure, ItemType.Nothing},
     )
     region.add(
-        "Orcs Fight",
+        "Orcs Fight Reward",
         i.Treasure01,
         [ram_and(0x76D5, 0x01)],
         rom_location=rom(36, 0x9755),
         restricted_types={ItemType.Treasure, ItemType.Nothing},
     )
     region.add(
-        "Goblins Fight",
+        "Goblins Fight Reward",
         i.Treasure02,
         [ram_and(0x76D5, 0x02)],
         rom_location=rom(36, 0x987C),
         restricted_types={ItemType.Treasure, ItemType.Nothing},
     )
     region.add(
-        "Kobolds Fight",
+        "Kobolds Fight Reward",
         i.Treasure03,
         [ram_and(0x76D5, 0x04)],
         rom_location=rom(36, 0x9F4C),
         restricted_types={ItemType.Treasure, ItemType.Nothing},
     )
     region.add(
-        "Hobgoblins Fight",
+        "Hobgoblins Fight Reward",
         i.Treasure77,
         [ram_and(0x76D5, 0x08)],
-        rom_location=rom(36, 0xA736),
+        rom_location=rom(37, 0xA736),
         restricted_types={ItemType.Treasure, ItemType.Nothing},
     )
     region.add(
-        "Big Orc Fight",
+        "Big Orc Fight Reward",
         i.Treasure04,
         [ram_and(0x76D5, 0x10)],
-        rom_location=rom(36, 0xA632),
+        rom_location=rom(37, 0xA632),
         restricted_types={ItemType.Treasure, ItemType.Nothing},
     )
     region.add(
-        "Guards Fight",
+        "Guards Fight Reward",
         i.Nothing,
         [ram_and(0x76D5, 0x20)],
-        rom_location=rom(36, 0xA969),
+        rom_location=rom(37, 0xA969),
         restricted_types={ItemType.Treasure, ItemType.Nothing},
     )
-    region.add("Ogre Fight", i.Nothing, [ram_and(0x76D5, 0x40)], fixed_item=i.Nothing)
-    region.add("Leaders Fight", i.Nothing, [ram_and(0x76D5, 0x80)], fixed_item=i.Nothing)
-    region.add("Flour Troll Fight", i.Treasure77, [ram_nz(0x76EB)], rom_location=rom(36, 0xAF22))
+    region.add("Ogre Fight Reward", i.Nothing, [ram_and(0x76D5, 0x40)], fixed_item=i.Nothing)
+    region.add("Leaders Fight Reward", i.Nothing, [ram_and(0x76D5, 0x80)], fixed_item=i.Nothing)
+    region.add(
+        "Flour Troll Fight Reward",
+        i.Treasure77,
+        [ram_nz(0x76EB)],
+        rom_location=rom(37, 0xAF22),
+        restricted_types={ItemType.Treasure, ItemType.Nothing},
+    )
 
 valjevo_locations: list[LocationData] = []
 with Region(1_026_000, a.ValjevoTower, valjevo_locations) as region:
-    region.add("Tyranthraxus Defeated", i.TyranthraxusDefeated, [ram_nz(0x76CC)], fixed_item=i.Nothing)
+    region.add("Tyranthraxus Defeated", i.TyranthraxusDefeated, [ram_nz(0x76CC)], fixed_item=i.TyranthraxusDefeated)
 
 
 locations_by_id = {location.id: location for location in all_locations}
