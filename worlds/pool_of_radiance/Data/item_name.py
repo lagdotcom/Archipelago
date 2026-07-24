@@ -3,6 +3,8 @@ Nothing = "Nothing"
 SlumsFightCredit = "Slums Fight"
 SlumsCleared = "Slums Cleared"
 
+TyranthraxusDefeated = "Tyranthraxus Defeated"
+
 Treasure01 = "T01: Scroll with 2 Cleric Spells"
 Treasure02 = "T02: Leather Armor +1"
 Treasure03 = "T03: Bracers AC 6"

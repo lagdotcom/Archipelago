@@ -11,7 +11,7 @@ def ram_label(offset: int):
 
 
 def ram(offset: int, size: int):
-    return IntSpan(nes_ram, offset, size)
+    return IntSpan(nes_ram, offset, size, "", "little")
 
 
 def sram_label(offset: int):
@@ -19,11 +19,11 @@ def sram_label(offset: int):
 
 
 def sram(offset: int, size: int):
-    return IntSpan(nes_sram, offset - 0x6000, size)
+    return IntSpan(nes_sram, offset - 0x6000, size, "", "little")
 
 
-def rom(bank: int, offset: int, size: int):
-    return IntSpan(nes_rom, bank * 0x2000 + offset % 0x2000, size)
+def rom(bank: int, offset: int, size: int = 1):
+    return IntSpan(nes_rom, bank * 0x2000 + offset % 0x2000, size, "", "little")
 
 
 def rom_str(bank: int, offset: int, size: int, encoding: str = "ascii"):
@@ -86,12 +86,11 @@ progress_flags = sram(0x7633, 0x100)
 current_gems = sram(0x7680, 2)
 current_money = sram(0x7682, 3)
 
-# TODO check safety!
-received_item_storage = sram(0x7FEE, 2)
+received_item_storage = sram(0x7210, 2)
 
 # ROM addresses
 
 rom_name = rom_str(63, 0xFFE0, 16)
 
-name_space = StrSpan(nes_rom, 0x6BE00, 0x200, "utf-8")
-goal_space = IntSpan(nes_rom, 0x6BEFF, 1)
+name_space = StrSpan(nes_rom, 0x6BE00, 0x1FF, "utf-8")
+goal_space = IntSpan(nes_rom, 0x6BFFF, 1)

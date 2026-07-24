@@ -90,6 +90,12 @@ def write_tokens(
                     )
                     continue
 
+            # default to 0 (no treasure)
+            patch.write_token(
+                APTokenTypes.WRITE, location_data.rom_location.address, location_data.rom_location.format(0)
+            )
+            continue
+
         raise Exception(f"Do not know how to put {item.name} at {location_data.name}")
 
     patch.write_file("token_data.bin", patch.get_token_binary())

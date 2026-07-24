@@ -2,7 +2,7 @@ import logging
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from math import ceil
 from random import Random
-from typing import TYPE_CHECKING, Any, NamedTuple
+from typing import TYPE_CHECKING, Any, Literal, NamedTuple
 
 import worlds._bizhawk as bizhawk
 from Options import Option
@@ -46,6 +46,7 @@ class MemorySpan(NamedTuple):
     address: int
     size: int
     encoding: str = "ascii"
+    byteorder: Literal["little", "big"] = "big"
 
     @property
     def end_address(self):
@@ -158,13 +159,13 @@ class MemoryManager:
 
 class IntSpan(MemorySpan):
     def parse(self, raw: bytes):
-        return int.from_bytes(raw, "big")
+        return int.from_bytes(raw, self.byteorder)
 
     def get(self, mem: MemoryManager):
         return self.parse(mem.get_bytes(self))
 
     def format(self, value: int):
-        return value.to_bytes(self.size, "big")
+        return value.to_bytes(self.size, self.byteorder)
 
     def as_write(self, value: int):
         return self.address, self.format(value), self.region

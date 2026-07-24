@@ -26,7 +26,39 @@ GOAL_TYRANTHRAXUS = 0
 GOAL_SLUMS = 1
 
 all_goals = [
-    # GoalData(GOAL_TYRANTHRAXUS, {}, {}, []),
+    GoalData(
+        GOAL_TYRANTHRAXUS,
+        {
+            a.NewPhlan,
+            a.Slums,
+            a.Sewers,
+            a.PodolPlaza,
+            a.MendorLibrary,
+            a.Buccaneer,
+            a.Cadorna,
+            a.Stojanow,
+            a.Wilderness,
+            a.SokalKeep,
+            a.Arena,
+            a.CityHall,
+            a.Valhingen,
+            a.KovelMansion,
+            a.WealthyArea,
+            a.Yarash,
+            a.NomadCamp,
+            a.DragonCave,
+            a.ZhentilKeep,
+            a.RuinedCastle,
+            a.KoboldCaves,
+            a.ValjevoSW,
+            a.ValjevoNW,
+            a.ValjevoSE,
+            a.ValjevoNE,
+            a.ValjevoTower,
+        },
+        {i.TyranthraxusDefeated},
+        [],
+    ),
     GoalData(GOAL_SLUMS, {a.NewPhlan, a.Slums}, {i.SlumsCleared}, []),
 ]
 

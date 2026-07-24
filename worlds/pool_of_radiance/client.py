@@ -25,7 +25,7 @@ from .enums import GameMode
 from .goals import GoalData, get_goal_data
 from .items import items_by_id
 from .laglib import IntSpan, MemoryManager
-from .laglib import genesis_ram as ram
+from .laglib import nes_ram as ram
 from .locations import all_locations, locations_by_id
 
 logger = logging.getLogger("Client")
@@ -128,6 +128,10 @@ class PRClient(BizHawkClient):
             GameMode.Spoils,
         }
 
+    def can_receive_item(self):
+        mode = game_mode.get(self.mem)
+        return mode == GameMode.Explore
+
     async def location_check(self, ctx: "BizHawkClientContext"):
         if not self.is_playing():
             return
@@ -189,7 +193,7 @@ class PRClient(BizHawkClient):
             await self.mem.write_span(ctx, received_item_storage, items_received)
 
     async def process_item_queue(self, ctx: "BizHawkClientContext"):
-        if not self.is_playing():
+        if not self.can_receive_item():
             return
 
         slot = self.get_empty_inventory_slot()
@@ -210,7 +214,7 @@ class PRClient(BizHawkClient):
 
     async def process_pending_gold(self, ctx: "BizHawkClientContext"):
         amount = self.gold_pending
-        if not amount or not self.is_playing():
+        if not amount or not self.can_receive_item():
             return
 
         old_gold = current_money.get(self.mem)

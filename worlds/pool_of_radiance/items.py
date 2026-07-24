@@ -7,8 +7,8 @@ from .Data import item_name as i
 
 
 class ItemType(IntEnum):
-    Garbage = 0
-    Item = 1
+    Nothing = 0
+    Treasure = 1
     Money = 2
     Flag = 3
     FlagAsItem = 4
@@ -28,23 +28,24 @@ class ItemData:
 flag_items = [
     ItemData(1_000_000, ItemType.Flag, i.SlumsFightCredit, ItemClassification.progression),
     ItemData(1_000_001, ItemType.Flag, i.SlumsCleared, ItemClassification.progression),
+    ItemData(1_000_999, ItemType.Flag, i.TyranthraxusDefeated, ItemClassification.progression),
 ]
 
 treasure_items = [
-    ItemData(1_100_001, ItemType.Item, i.Treasure01, ItemClassification.useful, 0x01),
-    ItemData(1_100_002, ItemType.Item, i.Treasure02, ItemClassification.useful, 0x02),
-    ItemData(1_100_003, ItemType.Item, i.Treasure03, ItemClassification.useful, 0x03),
-    ItemData(1_100_004, ItemType.Item, i.Treasure04, ItemClassification.useful, 0x04),
-    ItemData(1_100_005, ItemType.Item, i.Treasure05, ItemClassification.useful, 0x05),
-    ItemData(1_100_006, ItemType.Item, i.Treasure06, ItemClassification.useful, 0x06),
-    ItemData(1_100_020, ItemType.Item, i.Treasure14, ItemClassification.useful, 0x14),
-    ItemData(1_100_118, ItemType.Item, i.Treasure76, ItemClassification.useful, 0x76),
-    ItemData(1_100_119, ItemType.Item, i.Treasure77, ItemClassification.useful, 0x77),
+    ItemData(1_100_001, ItemType.Treasure, i.Treasure01, ItemClassification.useful, 0x01),
+    ItemData(1_100_002, ItemType.Treasure, i.Treasure02, ItemClassification.useful, 0x02),
+    ItemData(1_100_003, ItemType.Treasure, i.Treasure03, ItemClassification.useful, 0x03),
+    ItemData(1_100_004, ItemType.Treasure, i.Treasure04, ItemClassification.useful, 0x04),
+    ItemData(1_100_005, ItemType.Treasure, i.Treasure05, ItemClassification.useful, 0x05),
+    ItemData(1_100_006, ItemType.Treasure, i.Treasure06, ItemClassification.useful, 0x06),
+    ItemData(1_100_020, ItemType.Treasure, i.Treasure14, ItemClassification.useful, 0x14),
+    ItemData(1_100_118, ItemType.Treasure, i.Treasure76, ItemClassification.useful, 0x76),
+    ItemData(1_100_119, ItemType.Treasure, i.Treasure77, ItemClassification.useful, 0x77),
 ]
 
 
 junk_items = [
-    ItemData(1_999_000, ItemType.Garbage, i.Nothing, ItemClassification.filler | ItemClassification.deprioritized),
+    ItemData(1_999_000, ItemType.Nothing, i.Nothing, ItemClassification.filler | ItemClassification.deprioritized),
 ]
 
 filler_items = junk_items

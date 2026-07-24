@@ -33,7 +33,7 @@ def get_item_type(item: Item):
     if isinstance(item, PRItem):
         return items_by_name[item.name].type
     # TODO
-    return ItemType.Garbage
+    return ItemType.Nothing
 
 
 class PRSettings(settings.Group):
@@ -123,7 +123,8 @@ class PRWorld(World):
             region = multiworld.get_region(info.region_name, player)
             logger.debug("add location [%s] to region [%s]", info.name, region.name)
             loc = PRLocation(player, info.name, info.id, region)
-            loc.item_rule = self.get_item_rule(info.restricted_types)
+            if len(info.restricted_types):
+                loc.item_rule = self.get_item_rule(info.restricted_types)
             if info.rule is not None:
                 self.set_rule(loc, info.rule)
             region.locations.append(loc)
@@ -165,14 +166,12 @@ class PRWorld(World):
 
     def get_items_to_place(self):
         options = self.options
-        required: list[str] = []
-        optional: list[str] = []
+        not_fixed = [
+            locations_by_name[loc.name] for loc in self.get_locations() if not locations_by_name[loc.name].fixed_item
+        ]
 
         if options.item_distribution.value == DIST_SHUFFLE:
-            for location in self.get_locations():
-                data = locations_by_name[location.name]
-                required.append(data.vanilla_item)
-            logger.debug("shuffle: added %d items", len(required))
+            pool = [data.vanilla_item for data in not_fixed]
         else:
             raise Exception("DIST_RANDO not implemented yet")
             # goal = get_goal_data(options.goal.value)
@@ -185,30 +184,20 @@ class PRWorld(World):
             # optional += sample_repeating(self.random, useful_item_names, useful_count)
             # optional += sample_repeating(self.random, filler_item_names, filler_count)
 
-        return required, optional
+        return pool
 
     def create_items(self):
-        required, optional = self.get_items_to_place()
-
         for location in self.get_locations():
             data = locations_by_name[location.name]
             if data.fixed_item:
                 item = self.create_item(data.fixed_item)
-                if item.name in required:
-                    required.remove(item.name)
-                    resolution = "removed from required"
-                elif item.name in optional:
-                    optional.remove(item.name)
-                    resolution = "removed from optional"
-                else:
-                    _ = optional.pop()
-                    resolution = f"removed {_} from optional"
-                logger.debug("fixed: [%s] at [%s]; %s", item.name, location.name, resolution)
+                logger.debug("fixed: [%s] at [%s]", item.name, location.name)
                 location.place_locked_item(item)
 
-        for name in required + optional:
-            logger.debug("pool: added %s", name)
-            self.multiworld.itempool.append(self.create_item(name))
+        for name in self.get_items_to_place():
+            item = self.create_item(name)
+            logger.debug("pool: [%s]", item.name)
+            self.multiworld.itempool.append(item)
 
     def get_filler_item_name(self):
         return self.random.choice(filler_item_names)
