@@ -162,6 +162,7 @@ class PhSt2Client(BizHawkClient):
             await self.mem.update(ctx)
             await self.location_check(ctx)
             await self.received_items_check(ctx)
+            await self.process_flag_queue(ctx)
             await self.process_item_queue(ctx)
             await self.process_pending_mesetas(ctx)
             await self.met_goal_check(ctx)
@@ -257,7 +258,7 @@ class PhSt2Client(BizHawkClient):
                 await bizhawk.display_message(ctx.bizhawk_ctx, f"Received item: {flag.name}")
                 logger.debug("Received flag-item %s", flag.name)
             else:
-                self.flags_queue.append(flag)
+                self.flags_queue.appendleft(flag)
                 return  # leave it until next tick
 
     async def process_item_queue(self, ctx: "BizHawkClientContext"):
@@ -272,7 +273,7 @@ class PhSt2Client(BizHawkClient):
                 logger.debug("Received item %s", item.name)
                 slot = self.get_empty_inventory_slot()
             else:
-                self.items_queue.append(item)
+                self.items_queue.appendleft(item)
                 return  # leave it until next tick
 
         if len(self.items_queue):
